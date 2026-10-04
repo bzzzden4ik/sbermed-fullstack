@@ -38,6 +38,7 @@ class Doctor(Base):
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
     consultation_fee: Mapped[float] = mapped_column(Float)
     available_timings: Mapped[str] = mapped_column(String(255))  # e.g. "Mon-Fri 09:00 - 17:00"
+    photo_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)  # e.g. "/uploads/doctors/<uuid>.jpg"
 
     user: Mapped[Optional["User"]] = relationship(back_populates="doctor_profile")
     appointments: Mapped[List["Appointment"]] = relationship(back_populates="doctor")

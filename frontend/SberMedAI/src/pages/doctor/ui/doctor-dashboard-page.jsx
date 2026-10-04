@@ -6,7 +6,7 @@ import { SiteHeader } from '@/widgets/site-header'
 import { Loader, SiteFooter, StatusChip } from '@/shared/ui/common.jsx'
 import { ArrowRightIcon, OrbitBackground } from '@/shared/ui/icons.jsx'
 import { useToast } from '@/shared/ui/toast-context.js'
-import { getErrorMessage } from '@/shared/api/axios-client.js'
+import { getErrorMessage, mediaUrl } from '@/shared/api/axios-client.js'
 import { CASE_DECISION, CASE_STATUS, URGENCY } from '@/shared/lib/labels.js'
 import { formatDateTime, initials, pluralYears } from '@/shared/lib/format.js'
 import '../../profile/ui/cabinet.css'
@@ -53,7 +53,11 @@ export function DoctorDashboardPage() {
                     <div className="wrap">
                         <div className="crumbs"><span>Кабинет врача</span><span>/</span><b>Обращения</b></div>
                         <div className="who">
-                            <div className="ava" aria-hidden="true">{initials(profile?.full_name || user.full_name)}</div>
+                            <div className="ava" aria-hidden="true">
+                                {profile?.photo_url
+                                    ? <img src={mediaUrl(profile.photo_url)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
+                                    : initials(profile?.full_name || user.full_name)}
+                            </div>
                             <div>
                                 <h1>{profile?.full_name || user.full_name}</h1>
                                 <div className="sub">

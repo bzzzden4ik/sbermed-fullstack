@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSession } from '@/entities/session'
-import { listDoctors, createDoctor, updateDoctor, deleteDoctor } from '@/entities/doctor/api/doctor-api.js'
+import { listDoctors, createDoctor, updateDoctor, deleteDoctor, uploadDoctorPhoto, deleteDoctorPhoto } from '@/entities/doctor/api/doctor-api.js'
 import { listPatients, deletePatient } from '@/entities/patient/api/patient-api.js'
 import { listAppointments, updateAppointment } from '@/entities/appointment/api/appointment-api.js'
 import { listCases, CaseSummary } from '@/entities/case'
@@ -9,9 +9,9 @@ import { SiteHeader } from '@/widgets/site-header'
 import { Loader, Modal, SiteFooter, StatusChip } from '@/shared/ui/common.jsx'
 import { OrbitBackground, PlusIcon } from '@/shared/ui/icons.jsx'
 import { useToast } from '@/shared/ui/toast-context.js'
-import { getErrorMessage } from '@/shared/api/axios-client.js'
+import { getErrorMessage, mediaUrl } from '@/shared/api/axios-client.js'
 import { APPOINTMENT_STATUS, CASE_DECISION, CASE_STATUS, URGENCY } from '@/shared/lib/labels.js'
-import { formatDate, formatDateTime, formatGender } from '@/shared/lib/format.js'
+import { formatDate, formatDateTime, formatGender, initials } from '@/shared/lib/format.js'
 import '../../profile/ui/cabinet.css'
 import './admin.css'
 
@@ -62,29 +62,95 @@ const Overview = () => {
 
 const EMPTY_DOCTOR = { full_name: '', specialization: '', qualification: '', phone_number: '', email: '', consultation_fee: '', available_timings: 'Mon-Fri 09:00-17:00' }
 
+const PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp']
+const MAX_PHOTO_MB = 5
+
+const DoctorAvatar = ({ doctor, src, size = 44 }) => {
+    const url = src === undefined ? mediaUrl(doctor?.photo_url) : src
+    return (
+        <span className="doc-ava" style={{ width: size, height: size, fontSize: size * .38 }}>
+            {url ? <img src={url} alt={doctor?.full_name ? `Фото: ${doctor.full_name}` : 'Фото врача'} /> : initials(doctor?.full_name || '')}
+        </span>
+    )
+}
+
 const DoctorForm = ({ initial, onSaved }) => {
     const [form, setForm] = useState(initial || EMPTY_DOCTOR)
+    const [photoFile, setPhotoFile] = useState(null)
+    const [preview, setPreview] = useState(null)
+    const [removePhoto, setRemovePhoto] = useState(false)
     const [error, setError] = useState('')
     const [pending, setPending] = useState(false)
+
+    // Local preview of the chosen file; the object URL is released when replaced or when the form closes.
+    const previewRef = useRef(null)
+    const setPreviewUrl = (url) => {
+        if (previewRef.current) URL.revokeObjectURL(previewRef.current)
+        previewRef.current = url
+        setPreview(url)
+    }
+    useEffect(() => () => {
+        if (previewRef.current) URL.revokeObjectURL(previewRef.current)
+    }, [])
+
     const field = (name, props = {}) => ({
         id: `df-${name}`, className: 'input', required: true, value: form[name], ...props,
         onChange: (e) => setForm((f) => ({ ...f, [name]: e.target.value })),
     })
+
+    const choosePhoto = (e) => {
+        const file = e.target.files?.[0]
+        e.target.value = ''
+        if (!file) return
+        if (!PHOTO_TYPES.includes(file.type)) { setError('Фото должно быть в формате JPEG, PNG или WebP'); return }
+        if (file.size > MAX_PHOTO_MB * 1024 * 1024) { setError(`Фото должно быть не больше ${MAX_PHOTO_MB} МБ`); return }
+        setError('')
+        setRemovePhoto(false)
+        setPhotoFile(file)
+        setPreviewUrl(URL.createObjectURL(file))
+    }
+
+    const clearPhoto = () => {
+        setPhotoFile(null)
+        setPreviewUrl(null)
+        setRemovePhoto(!!initial?.photo_url)
+    }
+
     const submit = async (e) => {
         e.preventDefault()
         setPending(true)
         setError('')
         try {
             const payload = { ...form, consultation_fee: Number(form.consultation_fee) }
-            onSaved(initial ? await updateDoctor(initial.id, payload) : await createDoctor(payload))
+            let saved = initial ? await updateDoctor(initial.id, payload) : await createDoctor(payload)
+            if (photoFile) saved = await uploadDoctorPhoto(saved.id, photoFile)
+            else if (removePhoto) saved = await deleteDoctorPhoto(saved.id)
+            onSaved(saved)
         } catch (err) {
             setError(getErrorMessage(err))
             setPending(false)
         }
     }
+
+    const shownPhoto = photoFile ? preview : removePhoto ? null : mediaUrl(initial?.photo_url)
+
     return (
         <form onSubmit={submit}>
             {error && <div className="form-error">{error}</div>}
+            <div className="photo-field">
+                <DoctorAvatar doctor={form} src={shownPhoto} size={88} />
+                <div>
+                    <div className="lbl">Фотография</div>
+                    <p className="muted">JPEG, PNG или WebP, до {MAX_PHOTO_MB} МБ. Видна пациентам на сайте.</p>
+                    <div className="photo-acts">
+                        <label className="btn sm ghost">
+                            {shownPhoto ? 'Заменить фото' : 'Загрузить фото'}
+                            <input type="file" accept={PHOTO_TYPES.join(',')} onChange={choosePhoto} className="sr-only" />
+                        </label>
+                        {shownPhoto && <button type="button" className="alink" onClick={clearPhoto}>Удалить фото</button>}
+                    </div>
+                </div>
+            </div>
             <div className="fg"><label htmlFor="df-full_name">ФИО</label><input {...field('full_name', { minLength: 2 })} /></div>
             <div className="grid2">
                 <div className="fg"><label htmlFor="df-specialization">Специализация</label><input {...field('specialization', { minLength: 2, placeholder: 'Cardiology' })} /></div>
@@ -112,9 +178,10 @@ const Doctors = () => {
     return (
         <>
             <div className="tbl-actions"><button className="btn sm" onClick={() => setEditing({})}><PlusIcon />Добавить врача</button></div>
-            <Table head={['ФИО', 'Специализация', 'Email', 'Часы приёма', 'Аккаунт', '']}>
+            <Table head={['', 'ФИО', 'Специализация', 'Email', 'Часы приёма', 'Аккаунт', '']}>
                 {doctors.map((d) => (
                     <tr key={d.id}>
+                        <td style={{ width: 60 }}><DoctorAvatar doctor={d} /></td>
                         <td><b>{d.full_name}</b><small>{d.qualification}</small></td>
                         <td>{d.specialization}</td>
                         <td>{d.email}</td>

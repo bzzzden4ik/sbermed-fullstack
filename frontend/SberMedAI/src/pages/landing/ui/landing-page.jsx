@@ -6,6 +6,7 @@ import { SiteHeader } from '@/widgets/site-header'
 import { Logo } from '@/shared/ui/common.jsx'
 import { ArrowRightIcon, ArrowUpRightIcon } from '@/shared/ui/icons.jsx'
 import { initials } from '@/shared/lib/format.js'
+import { mediaUrl } from '@/shared/api/axios-client.js'
 import './landing.css'
 
 const LANDING_LINKS = [['#services', 'Направления'], ['#doctors', 'Врачи'], ['#about', 'О нас'], ['#ai', 'ИИ-ассистент'], ['#contacts', 'Контакты']]
@@ -164,6 +165,10 @@ export const LandingPage = () => {
                                     <article className="doc rv" key={doctor.id}>
                                         <div className="ph" role="img" aria-label={`Врач ${doctor.full_name}`}>
                                             <span className="mono">{initials(doctor.full_name)}</span>
+                                            {doctor.photo_url && (
+                                                <img src={mediaUrl(doctor.photo_url)} alt={doctor.full_name} loading="lazy"
+                                                    style={{ objectPosition: 'center 20%' }} onLoad={markLoaded} onError={dropImage} />
+                                            )}
                                         </div>
                                         <h3>{doctor.full_name}</h3>
                                         <div className="pos">{doctor.specialization}</div>

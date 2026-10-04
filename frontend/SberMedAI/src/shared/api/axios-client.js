@@ -50,3 +50,6 @@ export const getErrorMessage = (error, fallback = 'Что-то пошло не �
     if (error?.code === 'ERR_NETWORK') return 'Сервер недоступен. Проверьте, что backend запущен.'
     return fallback
 }
+
+/** Absolute URL for a file served by the backend (e.g. "/uploads/doctors/x.jpg"). */
+export const mediaUrl = (path) => (path ? `${api.defaults.baseURL}${path}` : null)

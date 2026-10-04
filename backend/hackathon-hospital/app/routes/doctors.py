@@ -1,8 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+import os
+import uuid
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from sqlalchemy.orm import Session
 from typing import List, Optional
+from app.config import settings
 from app.database import get_db
-from app.models import Doctor, User
+from app.models import Appointment, Doctor, PatientCase, Prescription, User
 from app.schemas import DoctorCreate, DoctorResponse, DoctorUpdate
 from app.routes.auth import RoleChecker, get_current_user
 from app.security import get_password_hash
@@ -11,6 +14,32 @@ router = APIRouter(prefix="/doctors", tags=["Doctors"])
 
 # Role checkers
 admin_only = RoleChecker(["admin"])
+
+PHOTO_DIR = os.path.join(settings.UPLOAD_DIR, "doctors")
+MAX_PHOTO_BYTES = 5 * 1024 * 1024
+# Detect the real image type from the file signature, so a script or HTML file cannot be stored as a "photo".
+PHOTO_SIGNATURES = {
+    b"\xff\xd8\xff": ".jpg",
+    b"\x89PNG\r\n\x1a\n": ".png",
+}
+
+
+def detect_photo_extension(content: bytes) -> Optional[str]:
+    for signature, ext in PHOTO_SIGNATURES.items():
+        if content.startswith(signature):
+            return ext
+    if content[:4] == b"RIFF" and content[8:12] == b"WEBP":
+        return ".webp"
+    return None
+
+
+def remove_photo_file(photo_url: Optional[str]) -> None:
+    """Delete a stored doctor photo; only files inside the doctors photo folder are ever touched."""
+    if not photo_url:
+        return
+    path = os.path.join(PHOTO_DIR, os.path.basename(photo_url))
+    if os.path.isfile(path):
+        os.remove(path)
 
 @router.post("", response_model=DoctorResponse, status_code=status.HTTP_201_CREATED)
 def create_doctor(
@@ -129,14 +158,95 @@ def delete_doctor(
     db: Session = Depends(get_db),
     current_user: User = Depends(admin_only)
 ):
-    """Delete a doctor profile; admin access is required."""
+    """Delete a doctor profile with no medical history; admin access is required.
+
+    Appointments and prescriptions require a doctor, and open cases still need one to decide,
+    so a doctor who has any of them cannot be deleted (409) and patients never lose records.
+    """
     doctor = db.query(Doctor).filter(Doctor.id == id).first()
     if not doctor:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Doctor not found"
         )
-        
+
+    blockers = {
+        "appointments": db.query(Appointment).filter(Appointment.doctor_id == doctor.id).count(),
+        "prescriptions": db.query(Prescription).filter(Prescription.doctor_id == doctor.id).count(),
+        "open patient cases": db.query(PatientCase).filter(
+            PatientCase.doctor_id == doctor.id,
+            PatientCase.status.in_(["READY_FOR_DOCTOR", "REFERRED", "UNDER_REVIEW"]),
+        ).count(),
+    }
+    found = [f"{count} {name}" for name, count in blockers.items() if count]
+    if found:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Doctor {doctor.full_name} cannot be deleted: they have {', '.join(found)}. "
+                   "Patient medical history must be kept.",
+        )
+
+    # Finished cases stay with the patient; only the link to the removed doctor is cleared.
+    db.query(PatientCase).filter(PatientCase.doctor_id == doctor.id).update({PatientCase.doctor_id: None}, synchronize_session=False)
+    db.query(PatientCase).filter(PatientCase.referred_from_doctor_id == doctor.id).update(
+        {PatientCase.referred_from_doctor_id: None}, synchronize_session=False
+    )
+
+    photo_url = doctor.photo_url
     db.delete(doctor)
     db.commit()
+    remove_photo_file(photo_url)
     return None
+
+
+@router.post("/{id}/photo", response_model=DoctorResponse)
+def upload_doctor_photo(
+    id: int,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(admin_only)
+):
+    """Upload or replace a doctor's photo (JPEG, PNG or WebP, up to 5 MB); admin access is required."""
+    doctor = db.query(Doctor).filter(Doctor.id == id).first()
+    if not doctor:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Doctor not found")
+
+    content = file.file.read(MAX_PHOTO_BYTES + 1)
+    if len(content) > MAX_PHOTO_BYTES:
+        raise HTTPException(status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, detail="Photo must be at most 5 MB")
+    ext = detect_photo_extension(content)
+    if not ext:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported image. Upload a JPEG, PNG or WebP photo")
+
+    os.makedirs(PHOTO_DIR, exist_ok=True)
+    filename = f"{uuid.uuid4()}{ext}"
+    try:
+        with open(os.path.join(PHOTO_DIR, filename), "wb") as f:
+            f.write(content)
+    except OSError as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to save photo: {e}")
+
+    old_photo = doctor.photo_url
+    doctor.photo_url = f"/{settings.UPLOAD_DIR}/doctors/{filename}"
+    db.commit()
+    db.refresh(doctor)
+    remove_photo_file(old_photo)
+    return doctor
+
+
+@router.delete("/{id}/photo", response_model=DoctorResponse)
+def delete_doctor_photo(
+    id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(admin_only)
+):
+    """Remove a doctor's photo; admin access is required."""
+    doctor = db.query(Doctor).filter(Doctor.id == id).first()
+    if not doctor:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Doctor not found")
+    old_photo = doctor.photo_url
+    doctor.photo_url = None
+    db.commit()
+    db.refresh(doctor)
+    remove_photo_file(old_photo)
+    return doctor

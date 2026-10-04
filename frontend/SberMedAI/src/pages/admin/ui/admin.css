@@ -14,3 +14,13 @@
   .input.sm { padding: 6px 34px 6px 12px; font-size: 13px; border-radius: 10px; width: auto; }
   .hero .tabs { margin-top: 8px; }
 }
+
+/* doctor photos */
+.doc-ava { display: inline-grid; place-items: center; flex: none; border-radius: 50%; overflow: hidden; background: radial-gradient(circle at 30% 25%, #2A8796, #0F5B68 62%); color: #fff; font-family: var(--serif); letter-spacing: .04em; }
+.doc-ava img { width: 100%; height: 100%; object-fit: cover; }
+.photo-field { display: flex; gap: 18px; align-items: center; margin-bottom: 18px; padding-bottom: 18px; border-bottom: 1px solid var(--line); }
+.photo-field p { font-size: 13px; margin: 2px 0 10px; }
+.photo-field .lbl { font-size: 13px; font-weight: 500; }
+.photo-acts { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+.photo-acts label.btn { cursor: pointer; }
+.photo-acts label.btn:focus-within { outline: 2px solid var(--acc); outline-offset: 3px; }

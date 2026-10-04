@@ -68,6 +68,7 @@ class DoctorResponse(BaseModel):
     email: str
     consultation_fee: float
     available_timings: str
+    photo_url: Optional[str] = None
 
     class Config:
         from_attributes = True

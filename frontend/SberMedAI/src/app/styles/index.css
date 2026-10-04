@@ -159,5 +159,14 @@ section.s { padding: clamp(48px, 7vw, 96px) 0; border-top: 1px solid var(--line)
   .hbg-orbit { width: 100%; }
   .role-tag { display: none; }
 }
-@media (max-width: 560px) { .logo { font-size: 22px; } .hnav { gap: 12px; } }
+@media (max-width: 560px) {
+  .logo { font-size: 22px; }
+  .hnav { gap: 12px; }
+  /* The bell is not the rightmost icon on phones, so a panel anchored to it overflowed the screen.
+     Pin it under the header across the full width instead (84px = 76px header + 8px gap). */
+  .panel { position: fixed; top: 84px; left: 12px; right: 12px; width: auto; border-radius: 20px; }
+  .panel-b { max-height: calc(100vh - 170px); max-height: calc(100dvh - 170px); }
+  .panel-h, .ntf { padding-left: 16px; padding-right: 16px; }
+}
+.ntf b, .ntf p { overflow-wrap: anywhere; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; } }

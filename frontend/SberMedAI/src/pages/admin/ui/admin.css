@@ -1,0 +1,16 @@
+.p-admin {
+  .tbl-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 24px; background: var(--card); }
+  .tbl { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 720px; }
+  .tbl th { text-align: left; font: 500 12px var(--sans); letter-spacing: .08em; text-transform: uppercase; color: var(--ink2); padding: 14px 16px; border-bottom: 1px solid var(--line); background: var(--bg2); }
+  .tbl td { padding: 14px 16px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  .tbl tr:last-child td { border-bottom: 0; }
+  .tbl td b { font-weight: 500; display: block; }
+  .tbl td small { display: block; color: var(--ink2); font-size: 12px; margin-top: 2px; }
+  .tbl tr.clickable { cursor: pointer; transition: background .2s; }
+  .tbl tr.clickable:hover { background: var(--bg2); }
+  .row-acts { white-space: nowrap; text-align: right; }
+  .row-acts .alink + .alink { margin-left: 14px; }
+  .tbl-actions { display: flex; justify-content: flex-end; margin-bottom: 16px; }
+  .input.sm { padding: 6px 34px 6px 12px; font-size: 13px; border-radius: 10px; width: auto; }
+  .hero .tabs { margin-top: 8px; }
+}

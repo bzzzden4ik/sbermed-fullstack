@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SIRIUS — университетская клиника нового поколения</title>
+<meta name="description" content="SIRIUS — частная университетская клиника с ИИ-ассистентом: подберём врача и запишем на приём за пару минут.">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+:root{--serif:"Instrument Serif","Times New Roman",serif;--sans:"Inter",system-ui,sans-serif;
+--ink:#1C2227;--ink2:#6A7279;--line:#E4E1DA;--bg:#FAF8F4;--bg2:#F2F0EA;--card:#fff;--acc:#0F5B68;--acc2:#0A4651;--tint:#E3EEEE;--mint:#8FD9C4;--ph:#ECEAE4;--ph2:#D5D2C9;
+--w:1240px;--edge:24px;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*{box-sizing:border-box}html{height:auto;scroll-behavior:smooth;scroll-padding-top:calc(84px + env(safe-area-inset-top,0px))}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.65 var(--sans);-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:var(--serif);font-weight:400;margin:0;letter-spacing:-.02em}
+h1{font-size:clamp(48px,8.4vw,128px);line-height:.95}.nowrap{white-space:nowrap}h2{font-size:clamp(38px,5.4vw,76px);line-height:1}h3{font-size:30px;line-height:1.1}
+h1 i,h2 i{color:var(--acc)}
+a{color:inherit;text-decoration:none}svg{display:block}p{margin:0}
+.wrap{width:min(var(--w),100% - var(--edge)*2);margin:0 auto}
+:focus-visible{outline:2px solid var(--acc);outline-offset:3px}
+.eyebrow{font:500 12px var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--acc);display:flex;align-items:center;gap:10px;margin-bottom:22px}
+.eyebrow::before{content:"";width:28px;height:1px;background:currentColor}
+/* buttons */
+.btn{display:inline-flex;align-items:center;gap:10px;background:var(--ink);color:#fff;border:0;border-radius:99px;padding:15px 26px;font:500 15px var(--sans);cursor:pointer;transition:background .3s,transform .3s,box-shadow .3s}
+.btn:hover{background:var(--acc);transform:translateY(-2px);box-shadow:0 12px 28px -10px rgba(15,91,104,.55)}
+.btn:active{transform:scale(.97)}.btn svg{transition:transform .3s}.btn:hover svg{transform:translateX(4px)}
+.btn.sm{padding:9px 18px;font-size:14px}.btn.ghost{background:transparent;color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink2)}
+.btn.ghost:hover{background:var(--card);color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+.btn.dis{background:var(--line);color:var(--ink2);cursor:not-allowed;pointer-events:none}
+.ibtn{width:40px;height:40px;border-radius:50%;border:0;background:transparent;color:var(--ink);display:grid;place-items:center;cursor:pointer;transition:background .3s}.ibtn:hover{background:var(--bg2)}
+.alink{font:500 14px var(--sans);display:inline-flex;gap:8px;align-items:center;border-bottom:1px solid var(--ink);padding-bottom:3px;transition:gap .3s,color .3s,border-color .3s}.alink:hover{gap:14px;color:var(--acc);border-color:var(--acc)}
+/* header */
+.header{position:sticky;top:0;z-index:50;background:rgba(250,248,244,.82);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid transparent;transition:border-color .3s}
+.header.stuck{border-color:var(--line)}
+.hnav{height:76px;display:flex;align-items:center;justify-content:space-between;gap:24px}
+.logo{display:flex;align-items:center;gap:12px;font:400 26px var(--serif);letter-spacing:.2em}
+.logo i{width:32px;height:32px;border-radius:50%;background:radial-gradient(circle at 30% 25%,#2A8796,var(--acc) 60%);display:grid;place-items:center;box-shadow:0 0 0 4px rgba(15,91,104,.1),0 6px 16px -4px rgba(15,91,104,.6)}.logo i svg{animation:beat 2s infinite}
+.menu{display:flex;list-style:none;margin:0;padding:0;gap:6px}
+.menu a{display:block;padding:8px 14px;border-radius:99px;font-size:14px;color:var(--ink2);transition:.25s}.menu a:hover{color:var(--ink);background:var(--bg2)}
+.hright{display:flex;align-items:center;gap:4px}.hright .btn{margin-left:10px}
+/* hero */
+.hero{padding:clamp(24px,4vw,36px) 0 0}
+.hero-top{display:grid;grid-template-columns:1fr auto;gap:40px;align-items:end}
+.hero h1{max-width:11ch}
+.hero-side{max-width:340px;padding-bottom:12px}.hero-side p{color:var(--ink2);font-size:17px;margin-bottom:28px}
+.hero-actions{display:flex;flex-direction:column;gap:12px;align-items:flex-start}
+.ph{background:linear-gradient(135deg,var(--ph),#F4F2EC 60%,var(--ph));border:1px solid var(--line);border-radius:28px;position:relative;overflow:hidden;display:grid;place-items:center;color:var(--ph2)}
+.ph::before,.ph::after{content:"";position:absolute;background:var(--ph2);opacity:.5}
+.ph::before{left:0;right:0;top:50%;height:1px;transform:rotate(var(--r,28deg))}.ph::after{left:0;right:0;top:50%;height:1px;transform:rotate(calc(var(--r,28deg)*-1))}
+.aiph::before,.aiph::after{display:none}
+.ph span{position:relative;z-index:1;background:var(--bg);border:1px solid var(--line);border-radius:99px;padding:6px 14px;font:500 11px var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--ink2)}
+.hero-ph{margin-top:56px;aspect-ratio:21/9;border-radius:36px;--r:12deg}
+.float{position:absolute;z-index:2;background:rgba(255,255,255,.92);backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:20px;box-shadow:0 24px 50px -24px rgba(28,34,39,.35);padding:16px 20px;display:flex;gap:14px;align-items:center;font-size:14px;animation:bob 6s ease-in-out infinite}
+.float b{display:block;font-weight:500}.float small{color:var(--ink2);font-size:12px}
+.float .dot{width:38px;height:38px;border-radius:50%;background:var(--tint);color:var(--acc);display:grid;place-items:center}
+@keyframes bob{50%{transform:translateY(-8px)}}
+.marq{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;padding:26px 0;color:var(--ink2);font-size:13px;border-bottom:1px solid var(--line)}.marq span::before{content:"✦ ";color:var(--acc)}
+/* sections */
+section.s{padding:clamp(80px,12vw,160px) 0}
+.split{display:grid;grid-template-columns:5fr 7fr;gap:clamp(30px,6vw,100px)}
+.sticky{position:sticky;top:120px;align-self:start}.sticky p{color:var(--ink2);margin:24px 0 32px;max-width:36ch}
+.dep{list-style:none;margin:0;padding:0;border-top:1px solid var(--line)}
+.dep li{border-bottom:1px solid var(--line)}
+.dep a{display:grid;grid-template-columns:48px 1fr auto;gap:16px;align-items:center;padding:26px 0;transition:padding .4s,color .3s}
+.dep em{font:normal 500 12px var(--sans);color:var(--ink2);letter-spacing:.1em}
+.dep h3{font-size:clamp(30px,3.6vw,48px);transition:transform .4s}.dep small{display:block;color:var(--ink2);font:400 14px var(--sans);margin-top:6px;max-height:0;opacity:0;overflow:hidden;transition:.4s}
+.dep .arr{width:44px;height:44px;border-radius:50%;border:1px solid var(--line);display:grid;place-items:center;transition:.35s}
+.dep a:hover{padding-left:12px;color:var(--acc)}.dep a:hover small{max-height:40px;opacity:1}.dep a:hover .arr{background:var(--acc);color:#fff;border-color:var(--acc);transform:rotate(-45deg)}
+/* doctors */
+.bg2{background:var(--bg2)}
+.shead{display:flex;justify-content:space-between;align-items:end;gap:20px;margin-bottom:clamp(40px,6vw,80px);flex-wrap:wrap}
+.docs{display:grid;grid-template-columns:repeat(3,1fr);gap:28px;align-items:start}
+.doc:nth-child(2){margin-top:70px}.doc:nth-child(3){margin-top:140px}
+.doc .ph{aspect-ratio:3/4;--r:35deg;transition:transform .5s,box-shadow .5s}.doc:hover .ph{transform:translateY(-6px);box-shadow:0 30px 60px -30px rgba(28,34,39,.35)}
+.doc h3{margin-top:22px}.doc .pos{color:var(--acc);font-size:14px;font-weight:500;margin-top:6px}
+.doc .meta{display:flex;justify-content:space-between;align-items:center;margin-top:14px;padding-top:14px;border-top:1px solid var(--line);color:var(--ink2);font-size:13px}
+.doc .meta span{display:block}
+/* about */
+.about{display:grid;grid-template-columns:6fr 6fr;gap:clamp(30px,6vw,90px);align-items:center}
+.about .ph{aspect-ratio:4/5;--r:40deg}
+.lead{font:400 clamp(22px,2.4vw,30px)/1.35 var(--serif);margin:28px 0 36px;color:#39424A}
+.pr{display:grid;grid-template-columns:1fr 1fr;gap:0;border-top:1px solid var(--line)}
+.pr div{padding:20px 20px 20px 0;border-bottom:1px solid var(--line);font-size:14px;color:var(--ink2)}.pr b{display:block;color:var(--ink);font-weight:500;margin-bottom:4px}
+/* AI */
+.ai{background:var(--tint);border-radius:44px;padding:clamp(32px,6vw,88px);display:grid;grid-template-columns:1fr 1fr;gap:clamp(30px,5vw,80px);align-items:center;position:relative;overflow:hidden}
+.ai::before{content:"";position:absolute;width:520px;height:520px;right:-140px;top:-200px;border-radius:50%;border:1px solid rgba(15,91,104,.2);box-shadow:0 0 0 70px rgba(15,91,104,.04),0 0 0 140px rgba(15,91,104,.03)}
+.ai>*{position:relative}.aiph{aspect-ratio:4/5;max-height:600px;width:100%;border-radius:32px;background:rgba(255,255,255,.55);border-color:rgba(15,91,104,.18);--r:38deg}.aiph span{background:#fff}
+.steps{list-style:none;margin:36px 0;padding:0;counter-reset:n}
+.steps li{counter-increment:n;display:grid;grid-template-columns:44px 1fr;gap:14px;padding:16px 0;border-top:1px solid rgba(15,91,104,.2);color:#3F5558;font-size:15px}
+.steps li::before{content:"0" counter(n);font:400 24px var(--serif);color:var(--acc)}.steps b{color:var(--ink);font-weight:500;display:block}
+.chat{background:var(--card);border-radius:28px;box-shadow:0 40px 80px -40px rgba(10,70,81,.5);padding:22px;display:flex;flex-direction:column;gap:12px;font-size:14px}
+.chat .top{display:flex;align-items:center;gap:10px;padding-bottom:14px;border-bottom:1px solid var(--line);font-weight:500}.chat .top i{width:8px;height:8px;border-radius:50%;background:var(--mint);box-shadow:0 0 0 4px rgba(143,217,196,.3)}
+.msg{max-width:84%;padding:12px 16px;border-radius:18px;line-height:1.5}.msg.u{align-self:flex-end;background:var(--ink);color:#fff;border-bottom-right-radius:6px}.msg.b{background:var(--bg2);border-bottom-left-radius:6px}
+.slot{display:flex;gap:8px;flex-wrap:wrap}.slot span{border:1px solid var(--line);border-radius:99px;padding:6px 14px;font-size:13px;cursor:pointer;transition:.25s}.slot span:hover,.slot span.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+.ask{display:flex;align-items:center;justify-content:space-between;border:1px solid var(--line);border-radius:99px;padding:6px 6px 6px 18px;color:var(--ink2)}
+/* stats */
+.stats{display:grid;grid-template-columns:repeat(3,1fr)}
+.stats>div{padding:0 clamp(16px,3vw,48px);border-left:1px solid var(--line)}.stats>div:first-child{padding-left:0;border:0}
+.stats b{font:400 clamp(64px,9vw,136px)/1 var(--serif);letter-spacing:-.03em;display:block}.stats sup{font-size:.4em;color:var(--acc);vertical-align:top;position:relative;top:.25em}
+.stats span{color:var(--ink2);font-size:14px;display:block;margin-top:14px;max-width:22ch}
+/* contacts */
+.contacts{display:grid;grid-template-columns:5fr 7fr;gap:clamp(30px,5vw,80px)}
+.addr{display:flex;flex-direction:column;gap:0;margin-top:40px;border-top:1px solid var(--line)}
+.addr div{padding:18px 0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:16px;font-size:15px}.addr span{color:var(--ink2);font-size:13px}
+.map{min-height:460px;border-radius:32px;border:1px solid var(--line);position:relative;overflow:hidden;background-color:#e8eee7;background-image:
+ linear-gradient(28deg,transparent 46%,#fff 46% 49%,#d8d3c7 49% 49.5%,#fff 49.5% 52%,transparent 52%),
+ linear-gradient(112deg,transparent 25%,#fff 25% 28%,#d8d3c7 28% 28.5%,#fff 28.5% 31%,transparent 31%),
+ linear-gradient(0deg,transparent 70%,rgba(164,193,155,.6) 70% 86%,transparent 86%),
+ linear-gradient(90deg,transparent 72%,rgba(164,193,155,.55) 72% 88%,transparent 88%),
+ repeating-linear-gradient(90deg,transparent 0 88px,rgba(255,255,255,.8) 88px 94px,rgba(190,185,171,.45) 94px 96px,transparent 96px 148px),
+ repeating-linear-gradient(0deg,transparent 0 72px,rgba(255,255,255,.8) 72px 78px,rgba(190,185,171,.45) 78px 80px,transparent 80px 132px),
+ radial-gradient(ellipse at 82% 20%,rgba(135,186,207,.8) 0 12%,transparent 12.5%),
+ linear-gradient(135deg,#edf0e8,#e1e9df)}
+.map::before{content:"";position:absolute;inset:-20%;background:repeating-linear-gradient(145deg,transparent 0 115px,rgba(255,255,255,.9) 115px 121px,rgba(190,185,171,.5) 121px 123px,transparent 123px 190px);transform:rotate(-8deg);pointer-events:none}
+.map::after{content:"ПАРК\A";white-space:pre;position:absolute;left:12%;top:17%;font:500 10px var(--sans);letter-spacing:.16em;color:#77906f}
+.pin{position:absolute;left:56%;top:46%;width:22px;height:22px;border-radius:50%;background:var(--acc);box-shadow:0 0 0 8px rgba(15,91,104,.18),0 0 0 22px rgba(15,91,104,.08);animation:pulse 2.4s infinite}
+@keyframes pulse{50%{box-shadow:0 0 0 14px rgba(15,91,104,.14),0 0 0 36px rgba(15,91,104,.04)}}
+.map .float{left:20px;bottom:20px;animation:none}
+/* footer */
+footer{border-top:1px solid var(--line);padding:80px 0 36px;background:var(--bg2)}
+.cols{display:grid;grid-template-columns:1.6fr 1fr 1.4fr;gap:40px}
+footer h5{margin:0 0 18px;font:500 12px var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--ink2)}
+footer ul{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:10px;font-size:14px}footer li{width:fit-content;color:#39424A;cursor:pointer;transition:color .25s,transform .25s}footer li:hover{color:var(--acc);transform:translateX(4px)}
+.word{font:400 clamp(90px,23vw,330px)/.8 var(--serif);letter-spacing:-.05em;color:var(--ink);opacity:.06;margin:56px 0 24px;user-select:none}
+.legal{border-top:1px solid var(--line);padding-top:22px;font-size:12px;color:var(--ink2);line-height:1.6}
+
+.ph img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform .9s cubic-bezier(.2,.7,.2,1)}.ph.has span,.ph.has::before,.ph.has::after{display:none}.doc:hover .ph img,.about .ph:hover img{transform:scale(1.045)}.ph.has{border-color:transparent}
+/* hero bg */
+.hero{position:relative;overflow:hidden}.hw{position:relative;z-index:1;min-height:min(78vh,720px);display:flex;flex-direction:column;justify-content:center}
+.hw .marq{margin-top:auto}.hcont{padding:20px 0 56px}.hero h1{max-width:9.5ch}
+.hp{max-width:430px;color:var(--ink2);font-size:18px;margin:32px 0 30px}
+.hbg{position:absolute;top:0;right:0;bottom:0;width:66%;z-index:0;-webkit-mask-image:linear-gradient(90deg,transparent,#000 38%);mask-image:linear-gradient(90deg,transparent,#000 38%);background:radial-gradient(circle at 62% 45%,#D3E7E7,transparent 62%),radial-gradient(circle at 95% 95%,rgba(143,217,196,.55),transparent 50%),radial-gradient(circle at 80% 0%,#EFE9DC,transparent 55%)}
+.hbg svg{position:absolute;inset:0;width:100%;height:100%;transition:opacity 1s}.hbg.has svg{opacity:.3}
+.hbg img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity 1.2s}.hbg.has img{opacity:.92}
+.orb{transform-origin:560px 350px;animation:rot 90s linear infinite}@keyframes rot{to{transform:rotate(360deg)}}
+.hs{filter:drop-shadow(0 0 22px rgba(42,135,150,.6));animation:tw 4s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+.hw>.float{position:absolute}.f1{right:6%;top:24%}.f2{right:26%;bottom:26%;animation-delay:-3s}.f3{right:3%;bottom:34%;animation-delay:-1.5s;padding:14px 22px}
+@media(max-width:960px){.hbg{width:100%;top:auto;height:55%;-webkit-mask-image:linear-gradient(0deg,#000 30%,transparent);mask-image:linear-gradient(0deg,#000 30%,transparent);opacity:.8}.hw .float{display:none}.hero h1{max-width:100%}.hw{min-height:auto}.hcont{padding-bottom:140px}}
+/* brand */
+.brand{padding:clamp(70px,10vw,140px) 0 20px;overflow:hidden}
+.bigname{font:400 clamp(72px,21vw,320px)/.85 var(--serif);letter-spacing:.01em;background:linear-gradient(100deg,var(--ink) 30%,var(--acc) 75%,#2A8796);-webkit-background-clip:text;background-clip:text;color:transparent;position:relative;width:fit-content;margin:6px 0 0}
+.tw{position:absolute;right:-.04em;top:-.06em;width:.22em;height:.22em;animation:tw 3.2s ease-in-out infinite;filter:drop-shadow(0 0 14px rgba(42,135,150,.7))}
+@keyframes tw{50%{transform:scale(.55) rotate(45deg);opacity:.6}}
+.ecg{width:100%;height:60px;margin:14px 0 40px;stroke-dasharray:1400;stroke-dashoffset:1400;animation:draw 3.5s .4s cubic-bezier(.4,0,.2,1) forwards}.ecg path{vector-effect:non-scaling-stroke}
+@keyframes draw{to{stroke-dashoffset:0}}
+.bn-row{display:grid;grid-template-columns:7fr 5fr;gap:clamp(30px,6vw,90px);align-items:start}.bn-row .lead{margin:0;max-width:30ch}
+.heart{display:flex;gap:16px;align-items:flex-start;color:var(--acc);padding:24px;border:1px solid var(--line);border-radius:24px;background:var(--card)}.heart svg{flex:none;animation:beat 1.6s infinite}.heart span{color:#39424A;font-size:15px}
+@keyframes beat{15%{transform:scale(1.2)}30%{transform:scale(1)}45%{transform:scale(1.14)}}
+/* chat+modal */
+.log{display:flex;flex-direction:column;gap:12px;max-height:300px;overflow-y:auto;scroll-behavior:smooth}
+.chips{display:flex;gap:8px;flex-wrap:wrap}.chips span{border:1px dashed var(--ph2);border-radius:99px;padding:5px 12px;font-size:12px;color:var(--ink2);cursor:pointer;transition:.25s}.chips span:hover{border-color:var(--acc);color:var(--acc)}
+.qin{flex:1;border:0;background:transparent;font:400 14px var(--sans);color:var(--ink);min-width:0}.qin:focus{outline:0}.ask:focus-within{border-color:var(--acc)}
+.note{color:var(--ink2);font-size:11px;line-height:1.5}.msg.t{color:var(--ink2);letter-spacing:.3em}
+.mod{position:fixed;inset:0;z-index:100;background:rgba(28,34,39,.35);backdrop-filter:blur(6px);display:grid;place-items:center;padding:20px}.mod[hidden]{display:none}
+.box{width:min(420px,100%);background:var(--card);border-radius:28px;padding:28px;box-shadow:0 40px 90px -30px rgba(0,0,0,.5);animation:pop .35s cubic-bezier(.2,.8,.2,1)}@keyframes pop{from{opacity:0;transform:translateY(16px) scale(.97)}}
+.mt{font:400 30px var(--serif);display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}.mwho{color:var(--acc);font-size:14px;margin-bottom:18px}
+.fg{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}.fg label{font-size:13px;font-weight:500}.emsg{color:#C8372D;font-size:12px;min-height:0}
+.input{border:1px solid var(--line);background:#fff;border-radius:14px;padding:12px 16px;font:400 15px var(--sans);color:var(--ink);transition:.25s}.input:focus{outline:0;border-color:var(--acc);box-shadow:0 0 0 4px rgba(15,91,104,.12)}.input.err{border-color:#C8372D}
+.chk{display:flex;gap:10px;font-size:13px;cursor:pointer;color:var(--ink2)}.chk input{accent-color:var(--acc);width:18px;height:18px;margin:0}
+.ok{text-align:center;padding:20px 0}.ok b{display:grid;place-items:center;width:64px;height:64px;margin:0 auto 18px;border-radius:50%;background:var(--tint);color:var(--acc);font-size:28px}
+@media(hover:none){.dep small{max-height:40px;opacity:1}}
+@media(max-width:960px){.bn-row{grid-template-columns:1fr}}
+/* reveal */
+.rv{opacity:0;transform:translateY(28px);transition:opacity .9s cubic-bezier(.2,.7,.2,1),transform .9s cubic-bezier(.2,.7,.2,1)}.rv.in{opacity:1;transform:none}
+@media(max-width:960px){.menu{display:none}.hero-top,.split,.about,.ai,.contacts,.cols{grid-template-columns:1fr}.sticky{position:static}
+.docs{grid-template-columns:1fr}.doc:nth-child(n){margin-top:0}.hero-ph{aspect-ratio:4/3}.stats{grid-template-columns:1fr;gap:40px}.stats>div{border:0;border-top:1px solid var(--line);padding:24px 0 0}.hero-top{gap:28px}.hright .btn{display:none}.float.f2{display:none}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}.rv{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+<header class="header" id="hd"><div class="wrap hnav">
+ <a class="logo" href="#"><i><svg width="17" height="17" viewBox="0 0 24 24"><path d="M12 21.5s-8.5-5.4-8.5-11.6A4.8 4.8 0 0 1 12 7a4.8 4.8 0 0 1 8.5 2.9c0 6.2-8.5 11.6-8.5 11.6z" fill="#fff"/><path d="M5.5 12.5h3.2l1.6-3.2 2.6 6 1.8-2.8h3.8" fill="none" stroke="#0F5B68" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></i>SIRIUS</a>
+ <ul class="menu"><li><a href="#services">Направления</a></li><li><a href="#doctors">Врачи</a></li><li><a href="#about">О нас</a></li><li><a href="#ai">ИИ-ассистент</a></li><li><a href="#contacts">Контакты</a></li></ul>
+ <div class="hright">
+  <button class="ibtn" aria-label="Поиск"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg></button>
+  <button class="ibtn" aria-label="Версия для слабовидящих"><svg width="24" height="20" viewBox="0 0 28 22" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="7" cy="11" r="5"/><circle cx="21" cy="11" r="5"/><path d="M12 11h4"/></svg></button>
+  <button class="ibtn" aria-label="Личный кабинет"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="7.5" r="4"/><path d="M4 21v-1.5a5 5 0 0 1 5-5h6a5 5 0 0 1 5 5V21"/></svg></button>
+
+ </div></div></header>
+
+<main>
+<div class="hero"><div class="hbg" aria-hidden="true">
+ <svg viewBox="0 0 900 700" preserveAspectRatio="xMidYMid slice"><g class="orb"><circle cx="560" cy="350" r="110" fill="none" stroke="#0F5B68" stroke-opacity="0.28" stroke-width="1"/><circle cx="560" cy="350" r="190" fill="none" stroke="#0F5B68" stroke-opacity="0.22" stroke-width="1"/><circle cx="560" cy="350" r="280" fill="none" stroke="#0F5B68" stroke-opacity="0.17" stroke-width="1"/><circle cx="560" cy="350" r="380" fill="none" stroke="#0F5B68" stroke-opacity="0.12" stroke-width="1"/><circle cx="560" cy="350" r="490" fill="none" stroke="#0F5B68" stroke-opacity="0.08" stroke-width="1"/><circle cx="670" cy="350" r="5" fill="#0F5B68"/><circle cx="370" cy="350" r="4" fill="#8FD9C4"/><circle cx="560" cy="70" r="5" fill="#0F5B68" fill-opacity=".7"/><circle cx="560" cy="730" r="4" fill="#0F5B68" fill-opacity=".5"/><circle cx="905" cy="350" r="4" fill="#8FD9C4"/></g><path class="hs" transform="translate(560 350) scale(5) translate(-12 -12)" d="M12 0c.8 7.2 4.8 11.2 12 12-7.2.8-11.2 4.8-12 12-.8-7.2-4.8-11.2-12-12C7.2 11.2 11.2 7.2 12 0z" fill="#0F5B68"/></svg>
+ <img src="https://img.magnific.com/premium-photo/health-care-medical-focus-heartbeat-checking-function-patient-heart-health-insurance-love-world-heart-day-check-up-heart-attack-cardiology-hospital-service-business_258787-6681.jpg" alt="" loading="eager" onload="this.parentNode.classList.add('has')" onerror="this.remove()"></div>
+<div class="wrap hw">
+ <div class="eyebrow">SIRIUS · Университетская клиника</div>
+ <div class="hcont">
+  <h1 class="rv">Здоровье <i style="white-space:nowrap">без лишних</i> звонков и ожидания</h1>
+  <p class="hp rv">Опишите, что вас беспокоит, — ИИ-агент подберёт специалиста и запишет на удобное время.</p>
+  <div class="hero-actions rv"><button class="btn" onclick="goAI()">Подобрать врача с ИИ <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button>
+  <a class="alink" href="#ai">Как это работает <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M8 7h9v9"/></svg></a></div>
+ </div>
+ 
+ <div class="float f2"><div class="dot">✓</div><div><b>Личный ассистент 24/7</b><small>Всегда на связи</small></div></div>
+ <div class="float f3"><div><b style="font:400 34px/1 var(--serif)">4.9 ★</b><small>оценка пациентов</small></div></div>
+<div class="marq"><span>Врачи с учёными степенями</span><span>Современное оборудование</span><span>Запись без звонков</span><span>Ежедневно 8:00–21:00</span></div>
+</div></div>
+
+<section class="brand"><div class="wrap">
+
+ <div class="bigname rv" aria-label="SIRIUS">SIRIUS<svg class="tw" width="64" height="64" viewBox="0 0 24 24"><path d="M12 0c.8 7.2 4.8 11.2 12 12-7.2.8-11.2 4.8-12 12-.8-7.2-4.8-11.2-12-12C7.2 11.2 11.2 7.2 12 0z" fill="#0F5B68"/></svg></div>
+ <svg class="ecg" viewBox="0 0 1000 60" preserveAspectRatio="none" aria-hidden="true"><path d="M0 30h330l20-8 18 8h40l14-26 20 52 18-26h40l16-8 16 8h470" fill="none" stroke="#0F5B68" stroke-width="1.5" stroke-linecap="round"/></svg>
+ <div class="bn-row rv"><p class="lead">Сириус — самая яркая звезда ночного неба. Веками по ней находили дорогу. Мы хотим быть такой же точкой опоры для пациента: <i>видимой, надёжной и всегда рядом.</i></p>
+ <div class="heart"><svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21s-8-5.2-8-11a4.6 4.6 0 0 1 8-3 4.6 4.6 0 0 1 8 3c0 5.8-8 11-8 11z"/></svg><span>Медицина с сердцем.<br>Технологии — чтобы у врача было больше времени для вас.</span></div></div>
+</div></section>
+
+<section class="s" id="services"><div class="wrap split">
+ <div class="sticky rv"><div class="eyebrow">Услуги</div><h2>Направления <i>клиники</i></h2><p>Полный цикл помощи — от первичной консультации до диагностики и наблюдения.</p><a class="alink" href="#">Все направления →</a></div>
+ <ul class="dep rv">
+  <li><a href="#"><em>01</em><div><h3>Офтальмология</h3><small>Диагностика зрения, лечение и коррекция</small></div><span class="arr"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></span></a></li>
+  <li><a href="#"><em>02</em><div><h3>Кардиология</h3><small>Сердце и сосуды: обследование и профилактика</small></div><span class="arr"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></span></a></li>
+  <li><a href="#"><em>03</em><div><h3>Неврология</h3><small>Головная боль, сон, нервная система</small></div><span class="arr"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></span></a></li>
+  <li><a href="#"><em>04</em><div><h3>Диагностика</h3><small>УЗИ, МРТ, лабораторные исследования</small></div><span class="arr"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></span></a></li>
+ </ul>
+</div></section>
+
+<section class="s bg2" id="doctors"><div class="wrap">
+ <div class="shead rv"><div><div class="eyebrow">Специалисты</div><h2>Лучшие <i>врачи</i></h2></div><a class="alink" href="#">См. всех →</a></div>
+ <div class="docs">
+  <article class="doc rv"><div class="ph" role="img" aria-label="Фото врача"><img src="https://unsplash.com/photos/XuB10o8080c/download?force=true&w=900" alt="Врач" loading="lazy" style="object-position:center 20%" onload="this.parentNode.classList.add('has')" onerror="this.remove()"><img src="https://unsplash.com/photos/_zbqco3m7dA/download?force=true&w=900" alt="Врач" loading="lazy" style="object-position:center 20%" onload="this.parentNode.classList.add('has')" onerror="this.remove()"><img src="https://unsplash.com/photos/VAvkPtF4HJI/download?force=true&w=900" alt="Врач" loading="lazy" style="object-position:center 20%" onload="this.parentNode.classList.add('has')" onerror="this.remove()"><span>Портрет · 3:4</span></div><h3>Иванов Иван Иванович</h3><div class="pos">Офтальмолог</div><div class="meta"><div>Кандидат медицинских наук<span>Клиники приёма: 1</span></div><button class="btn sm" data-book>Записаться</button></div></article>
+  <article class="doc rv"><div class="ph" role="img" aria-label="Фото врача"><img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQbFzAXvdTbIVN5f9OH1QX1DJrDndX2Junh1dYw-o4Xww&s=10" alt="Фото Петровой Марии Сергеевны" loading="lazy" style="object-position:center 20%" onload="this.parentNode.classList.add('has')" onerror="this.remove()"><span>Портрет · 3:4</span></div><h3>Петрова Мария Сергеевна</h3><div class="pos">Кардиолог</div><div class="meta"><div>Доктор медицинских наук<span>Клиники приёма: 2</span></div><button class="btn sm" data-book>Записаться</button></div></article>
+  <article class="doc rv"><div class="ph" role="img" aria-label="Фото врача"><img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQNm15-t7RWDG0LNdnPbdIy7nU8d4KIGTaE2-TDU5_Fww&s=10" alt="Фото Сидорова Алексея Петровича" loading="lazy" style="object-position:center 20%" onload="this.parentNode.classList.add('has')" onerror="this.remove()"><span>Портрет · 3:4</span></div><h3>Сидоров Алексей Петрович</h3><div class="pos">Невролог</div><div class="meta"><div>Кандидат медицинских наук<span>Клиники приёма: 1</span></div><button class="btn sm" data-book>Записаться</button></div></article>
+ </div>
+</div></section>
+
+<section class="s" id="about"><div class="wrap about">
+ <div class="ph rv" role="img" aria-label="Изображение клиники"><img src="https://unsplash.com/photos/JJEOuvnY1Tw/download?force=true&w=1200" alt="Врач в клинике" loading="lazy" style="object-position:center 25%" onload="this.parentNode.classList.add('has')" onerror="this.remove()"><span>Интерьер · 4:5</span></div>
+ <div class="rv"><div class="eyebrow">О нас</div><h2>Медицина, в которой <i>вас слышат</i></h2>
+  <p class="lead">Частная клиника с современным оборудованием, врачами с учёными степенями и цифровым сервисом записи, где ИИ-агент помогает выбрать специалиста и подготовиться к приёму.</p>
+  <div class="pr"><div><b>Персональный подход</b>Один маршрут пациента — от запроса до наблюдения.</div><div><b>Доказательная медицина</b>Решения врача опираются на данные и протоколы.</div><div><b>Технологии</b>Цифровая запись и напоминания без звонков.</div><div><b>Забота</b>Спокойная среда и время на каждого пациента.</div></div></div>
+</div></section>
+
+<section class="s" id="ai" style="padding-top:0"><div class="wrap"><div class="ai rv">
+ <div><div class="eyebrow">ИИ-ассистент</div><h2>Подберёт врача <i>и запишет</i> за вас</h2>
+  <ol class="steps"><li><div><b>Опишите симптомы</b>Своими словами, текстом или голосом.</div></li><li><div><b>Получите рекомендацию</b>Ассистент определит специалиста и срочность.</div></li><li><div><b>Выберите время</b>Запись подтверждается сразу, напоминание — за сутки.</div></li></ol>
+  <button class="btn" data-book>Начать диалог <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button></div>
+ <div class="ph aiph" role="img" aria-label="Видео ИИ-ассистента">
+  <video autoplay muted loop playsinline preload="auto" style="width:100%;height:100%;object-fit:cover;display:block;" aria-label="Видео ИИ-ассистента">
+   <source src="./ai-promo.MOV" type="video/mp4">
+  </video>
+
+ </div>
+</div></div></section>
+
+<section class="s" style="padding-top:0"><div class="wrap stats">
+ <div class="rv"><b>15<sup>+</sup></b><span>лет опыта врачей клиники</span></div>
+ <div class="rv"><b>40</b><span>специалистов в штате</span></div>
+ <div class="rv"><b>12 000</b><span>пациентов ежегодно</span></div>
+</div></section>
+
+<section class="s bg2" id="contacts"><div class="wrap contacts">
+ <div class="rv"><div class="eyebrow">Контакты</div><h2>Ждём вас <i>в клинике</i></h2>
+  <div class="addr"><div><b style="font-weight:500">Стационар на ул. Примерная</b><span>г. Москва, ул. Октябрьская, 3</span></div><div>Режим работы<span>Ежедневно 8:00–21:00</span></div><div>Телефон<span>+7 915 163-07-01</span></div></div></div>
+ <div class="map rv" role="img" aria-label="Стилизованная карта района клиники по адресу: 119048, Москва, ул. Доватора, 15"><div class="pin"></div><div class="float"><div class="dot">⌖</div><div><b>SIRIUS Hospital</b><small>119048, Москва, ул. Доватора, 15</small></div></div></div>
+</div></section>
+</main>
+
+<footer><div class="wrap">
+ <div class="cols">
+  <div><a class="logo" href="#"><i><svg width="17" height="17" viewBox="0 0 24 24"><path d="M12 21.5s-8.5-5.4-8.5-11.6A4.8 4.8 0 0 1 12 7a4.8 4.8 0 0 1 8.5 2.9c0 6.2-8.5 11.6-8.5 11.6z" fill="#fff"/><path d="M5.5 12.5h3.2l1.6-3.2 2.6 6 1.8-2.8h3.8" fill="none" stroke="#0F5B68" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></i>SIRIUS</a><p style="font-size:14px;color:var(--ink2);margin-top:16px">+7 915 163-07-01<br>info@example.clinic</p></div>
+  <div><h5>Пациентам</h5><ul><li>Врачи</li><li>Услуги</li><li>Личный кабинет</li></ul></div>
+  <div><h5>Документы</h5><ul><li>Политика обработки персональных данных</li><li>Согласие на использование cookie</li><li>Пользовательское соглашение</li><li>Лицензии и сертификаты</li></ul></div>
+ </div>
+ <div class="word" aria-hidden="true">SIRIUS</div>
+ <div class="legal">Имеются противопоказания, необходима консультация специалиста. Информация на сайте не является публичной офертой и не заменяет очную консультацию врача. Лицензия на медицинскую деятельность № 00-00-000000 (пример). © 2026 SIRIUS.</div>
+</div></footer>
+
+
+</body>
+<script>
+const hd=document.getElementById('hd');addEventListener('scroll',()=>hd.classList.toggle('stuck',scrollY>8),{passive:true});
+const io=new IntersectionObserver(e=>e.forEach(x=>{if(x.isIntersecting){x.target.classList.add('in');io.unobserve(x.target)}}),{threshold:.12});
+document.querySelectorAll('.rv').forEach((el,i)=>{el.style.transitionDelay=(i%3)*90+'ms';io.observe(el)});
+document.querySelectorAll('.slot span').forEach(s=>s.onclick=()=>{s.parentNode.querySelectorAll('span').forEach(o=>o.classList.remove('on'));s.classList.add('on')});
+
+const $=id=>document.getElementById(id),mod=$('mod');
+function goAI(){$('ai').scrollIntoView()}
+const body=$('mb').innerHTML;
+function book(who,when){$('mb').innerHTML=body;$('mwho').textContent=(who||'Первичная консультация')+(when?' · '+when:'');mod.hidden=false;$('go').onclick=sub;setTimeout(()=>$('nm').focus(),50)}
+function sub(){const ph=$('ph'),ok=ph.value.replace(/\D/g,'').length>=10,cs=$('cs').checked;ph.classList.toggle('err',!ok);$('pe').textContent=ok?'':'Введите номер полностью';$('ce').textContent=cs?'':'Нужно согласие';
+ if(ok&&cs)$('mb').innerHTML='<div class="ok"><b>✓</b><h3>Вы записаны</h3><p style="color:var(--ink2);margin-top:8px">'+$('mwho').textContent+'<br>Напоминание придёт за сутки.</p></div>'}
+document.querySelectorAll('[data-book]').forEach(b=>b.onclick=()=>{const d=b.closest('.doc');book(d?d.querySelector('h3').textContent+' · '+d.querySelector('.pos').textContent:'')});
+$('mx').onclick=()=>mod.hidden=true;mod.onclick=e=>{if(e.target===mod)mod.hidden=true};addEventListener('keydown',e=>{if(e.key==='Escape')mod.hidden=true});
+</script>
+</html>

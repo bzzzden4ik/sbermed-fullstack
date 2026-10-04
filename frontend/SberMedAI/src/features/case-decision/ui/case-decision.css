@@ -1,0 +1,9 @@
+.decide .opts { border: 0; padding: 0; margin: 0 0 18px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.decide .opt { position: relative; display: flex; flex-direction: column; gap: 6px; padding: 18px 20px; border: 1px solid var(--line); border-radius: 22px; background: var(--card); cursor: pointer; transition: border-color .25s, box-shadow .25s, transform .25s; }
+.decide .opt:hover { border-color: var(--ink2); transform: translateY(-2px); }
+.decide .opt.on { border-color: var(--acc); box-shadow: 0 0 0 4px rgba(15, 91, 104, .12); }
+.decide .opt input { position: absolute; opacity: 0; pointer-events: none; }
+.decide .opt:has(input:focus-visible) { outline: 2px solid var(--acc); outline-offset: 3px; }
+.decide .opt b { font: 400 22px/1.15 var(--serif); }
+.decide .opt span { font-size: 13px; color: var(--ink2); }
+@media (max-width: 860px) { .decide .opts { grid-template-columns: 1fr; } }

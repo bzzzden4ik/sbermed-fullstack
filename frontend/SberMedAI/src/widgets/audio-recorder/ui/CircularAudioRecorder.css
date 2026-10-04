@@ -1,0 +1,136 @@
+/* Контейнер */
+.recorder-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  font-family: sans-serif;
+}
+
+/* Обертка для кнопки и анимации */
+.recorder-wrapper {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100px;
+  height: 100px;
+}
+
+/* Сама круглая кнопка */
+.circular-button {
+  position: relative;
+  z-index: 10; /* Поверх волн */
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Цвета состояний кнопки */
+.circular-button.state-idle {
+  background-color: #6366f1; /* Indigo */
+  color: white;
+}
+
+.circular-button.state-idle:hover {
+  background-color: #4f46e5;
+}
+
+.circular-button.state-recording {
+  background-color: #ef4444; /* Red */
+  color: white;
+  transform: scale(1.1); /* Легкое увеличение */
+}
+
+.circular-button.state-finished {
+  background-color: #e5e7eb; /* Grey */
+  color: #9ca3af;
+  cursor: not-allowed;
+}
+
+/* --- CSS АНИМАЦИЯ (Пульсирующие волны) --- */
+
+.pulse-ring {
+  position: absolute;
+  z-index: 1;
+  width: 64px; /* Размер как у кнопки */
+  height: 64px;
+  border-radius: 50%;
+  background-color: rgba(99, 102, 241, 0.5); /* Полупрозрачный Indigo */
+  opacity: 0;
+  transition: all 0.3s ease;
+}
+
+/* Включаем анимацию только при записи */
+.recorder-wrapper.is-recording .pulse-ring {
+  background-color: rgba(239, 68, 68, 0.6); /* Полупрозрачный Красный */
+  animation: pulse-animation 2s infinite cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+/* Задержки для создания эффекта нескольких волн */
+.recorder-wrapper .delay-1 { animation-delay: 0.5s; }
+.recorder-wrapper .delay-2 { animation-delay: 1s; }
+
+/* Ключевые кадры анимации */
+@keyframes pulse-animation {
+  0% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(2.5); /* Волны расширяются в 2.5 раза */
+    opacity: 0; /* И исчезают */
+  }
+}
+
+/* Блок после записи */
+.finish-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.finish-controls audio {
+  width: 100%;
+  max-width: 300px;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-primary, .btn-secondary {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+}
+
+.btn-primary { background-color: #6366f1; color: white; }
+.btn-secondary { background-color: #f3f4f6; color: #1f2937; }
+.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+/* Дополнительно для лоадера при отправке */
+.circular-button.state-uploading {
+    background-color: #6366f1;
+    color: white;
+    cursor: wait;
+  }
+  
+  .spin-loader {
+    animation: spin 1s linear infinite;
+  }
+  
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }

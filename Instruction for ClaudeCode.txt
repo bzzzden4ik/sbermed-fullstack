@@ -1,0 +1,319 @@
+You are a senior full-stack engineer with strong experience in Python, FastAPI, React, AI agents and healthcare systems.
+
+Your task is NOT to build a new project from scratch.
+
+The project is located at:
+
+/Desktop/hackathon
+
+It contains:
+
+- backend/
+- frontend/
+- html-templates-for-integrating/
+
+These are partially implemented parts of the same project. Your job is to turn them into one real, fully connected application.
+
+==================================================
+1. ANALYZE FIRST
+==================================================
+
+Before making major changes, carefully analyze:
+
+- backend structure, models, database, authentication, JWT, roles, services/use cases, routers and existing AI/MCP logic
+- frontend architecture, routing, Axios, authentication and existing components
+- every HTML template in html-templates-for-integrating/
+
+Do NOT immediately rewrite existing code.
+
+First understand what already works and reuse it.
+
+Create a short implementation plan identifying:
+- what already exists
+- what is missing
+- what needs to be connected
+- what needs to be implemented
+
+==================================================
+2. PROJECT
+==================================================
+
+The project is an AI-powered hospital platform.
+
+There are three roles:
+
+- ADMIN
+- DOCTOR
+- PATIENT
+
+Main frontend pages:
+
+- Hospital Landing Page
+- Profile / Dashboard
+- AI Assistant
+
+Integrate the HTML templates into the React application properly. Do not simply embed static HTML files. Convert them into React components/pages while preserving their design.
+
+Use Axios to connect React to the real FastAPI backend.
+
+Do not use mock data when a real backend endpoint exists.
+
+==================================================
+3. CORE PRODUCT FLOW
+==================================================
+
+The main purpose is to reduce the workload of doctors.
+
+The AI assistant communicates with the patient before the doctor's consultation.
+
+Patient
+→ AI Assistant
+→ AI collects complaints and relevant information
+→ AI structures the information
+→ Patient Case is created
+→ Doctor reviews the case
+→ Doctor makes the final decision
+→ Patient receives notification + email
+
+IMPORTANT:
+
+The AI does NOT make the final medical decision.
+
+It only collects, structures and summarizes the patient's information.
+
+The doctor always makes the final decision.
+
+==================================================
+4. NEW BACKEND DOMAIN: PATIENT CASE
+==================================================
+
+IMPORTANT: the current backend has an Appointment system, but it does NOT have a system for patient complaints/cases.
+
+You must implement this new domain.
+
+A Patient Case is NOT the same as an Appointment.
+
+Appointment:
+Patient → Doctor → Date/Time
+
+Patient Case:
+Patient → Complaint → AI Summary → Doctor Review → Decision
+
+A Patient Case may eventually lead to an Appointment, but creating a case must NOT automatically create an appointment.
+
+Implement the necessary:
+
+- database model(s)
+- relationships
+- schemas
+- repositories/services/use cases following the existing architecture
+- API endpoints
+- authorization
+
+Use the existing backend patterns instead of introducing unnecessary abstractions.
+
+A case should contain the relevant patient, doctor, complaint, AI-generated structured summary, status, decision and timestamps. Add only fields that are actually needed.
+
+Suggested lifecycle:
+
+OPEN
+→ AI_COLLECTING
+→ READY_FOR_DOCTOR
+→ UNDER_REVIEW
+→ RESOLVED
+
+For referral:
+
+READY_FOR_DOCTOR
+→ REFERRED
+→ UNDER_REVIEW
+→ RESOLVED
+
+Keep the state system simple.
+
+==================================================
+5. PATIENT
+==================================================
+
+Patient can:
+
+- register/login
+- open profile
+- use AI Assistant
+- have conversations
+- answer AI questions
+- see their cases
+- see case status and final doctor decision
+- receive notifications
+- receive email notifications
+
+A patient must only access their own data.
+
+==================================================
+6. DOCTOR
+==================================================
+
+Doctor can:
+
+- login
+- open dashboard/profile
+- see authorized patient cases
+- open a case
+- view patient information
+- view the patient's complaint
+- view AI-generated structured summary
+- make the final decision
+
+Possible decisions:
+
+- NEEDS_EXAMINATION
+- NO_EXAMINATION_NEEDED
+- REFER_TO_SPECIALIST
+
+If referring the patient, the doctor selects another appropriate doctor/specialist.
+
+After the decision:
+
+Doctor
+→ save decision
+→ update case
+→ create patient notification
+→ send email
+→ display result in patient's profile
+
+Backend authorization must enforce access. Do not rely on frontend filtering.
+
+==================================================
+7. ADMIN
+==================================================
+
+Integrate the existing admin functionality into React.
+
+Do not remove or unnecessarily rewrite existing admin logic.
+
+Respect the existing role and authorization system.
+
+==================================================
+8. AI / MCP
+==================================================
+
+Analyze the existing AI agent and MCP implementation before changing it.
+
+If MCP is already implemented, reuse it.
+
+The architecture should remain:
+
+React
+↓
+FastAPI
+↓
+AI Agent
+↓
+MCP tools
+↓
+Authorized FastAPI endpoints/services
+↓
+Database
+
+The AI must NOT access the database directly.
+
+The user's JWT/authentication context must be preserved when the AI uses protected hospital operations.
+
+Patient data must never be mixed between users.
+
+The AI-generated information is a structured patient summary for the doctor, NOT a diagnosis.
+
+==================================================
+9. AUTHENTICATION & API
+==================================================
+
+Connect the frontend and backend end-to-end:
+
+Login
+→ JWT
+→ React auth state/storage
+→ Axios Authorization header
+→ FastAPI
+→ current_user
+→ role-based permissions
+
+Analyze existing endpoints first.
+
+If something required does not exist, implement it using the existing backend architecture.
+
+Do not create duplicate endpoints.
+
+==================================================
+10. UI
+==================================================
+
+Integrate the provided HTML templates into React.
+
+The landing page should feel like a premium modern hospital.
+
+The AI assistant should feel like a serious healthcare product, not a generic chatbot.
+
+Patient, doctor and admin interfaces must be clearly separated.
+
+The application must be responsive.
+
+==================================================
+11. FINAL REQUIREMENT
+==================================================
+
+Do not build disconnected demo pages.
+
+The entire system must work as one application.
+
+After implementation, verify this complete scenario:
+
+PATIENT
+→ logs in
+→ opens AI Assistant
+→ communicates with AI
+→ AI collects complaints
+→ Patient Case is created
+→ case appears in Doctor dashboard
+→ Doctor reviews it
+→ Doctor makes a decision
+→ decision is saved
+→ Patient receives notification
+→ Patient receives email
+
+This complete end-to-end flow is the most important part of the project.
+
+Do not unnecessarily rewrite working code.
+Reuse existing models, services, endpoints and architecture whenever possible.
+Implement only what is missing and necessary to make the system work.
+
+==================================================
+AI COST CONTROL
+==================================================
+
+AI/LLM API calls are paid, so minimize unnecessary AI requests.
+
+Rules:
+
+- Do not call AI endpoints on page loads, refreshes, navigation, or normal
+  CRUD operations unless AI is actually required.
+- AI should be triggered only by an explicit user action or when the backend
+  genuinely needs AI processing.
+- Never regenerate an AI summary if a valid summary already exists.
+- Store generated AI results in the database and reuse them.
+- Do not send the same request/conversation to the AI multiple times.
+- Do not use unnecessary polling for AI endpoints.
+- Prevent duplicate AI requests caused by React re-renders, component
+  mounting, or duplicated event handlers.
+- Keep AI conversation context reasonably small; do not send the entire
+  history when it is unnecessary.
+
+Examples:
+
+Opening a profile → regular API/DB → NO AI
+Opening an existing Patient Case → stored data → NO AI
+Viewing an existing AI summary → stored summary → NO AI
+Patient sends a new AI message → AI request
+Creating/updating a case with AI → AI request
+Doctor explicitly requests new AI analysis → AI request
+
+Design the system to be cost-efficient, especially for the hackathon/demo.

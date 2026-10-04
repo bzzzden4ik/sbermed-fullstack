@@ -1,0 +1,12 @@
+.login__form {
+    width: 400px;
+    display: flex;
+    flex-direction: column;
+}
+.login__form a {
+    cursor: pointer;
+    color: #1b36ae;
+}
+.login__form a:hover {
+    text-decoration: underline;
+}

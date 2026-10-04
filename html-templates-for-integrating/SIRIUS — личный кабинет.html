@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Личный кабинет — SIRIUS</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+:root{--serif:"Instrument Serif","Times New Roman",serif;--sans:"Inter",system-ui,sans-serif;
+--ink:#1C2227;--ink2:#6A7279;--line:#E4E1DA;--bg:#FAF8F4;--bg2:#F2F0EA;--card:#fff;--acc:#0F5B68;--tint:#E3EEEE;--mint:#8FD9C4;--bad:#C8372D;--badbg:#FBE9E7;--okbg:#E3F3EC;--ok:#1B7A5A;--hdr:rgba(250,248,244,.82);
+--w:1240px;--edge:24px;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--ink:#EDEBE6;--ink2:#9AA3A9;--line:#2D353B;--bg:#12171A;--bg2:#181F23;--card:#1D252A;--acc:#5CB8C6;--tint:#1B2D31;--badbg:#3A1F1C;--okbg:#17302A;--ok:#6ED0A8;--bad:#F08A80;--hdr:rgba(18,23,26,.82)}}
+:root[data-theme="dark"]{--ink:#EDEBE6;--ink2:#9AA3A9;--line:#2D353B;--bg:#12171A;--bg2:#181F23;--card:#1D252A;--acc:#5CB8C6;--tint:#1B2D31;--badbg:#3A1F1C;--okbg:#17302A;--ok:#6ED0A8;--bad:#F08A80;--hdr:rgba(18,23,26,.82)}
+*{box-sizing:border-box}html{height:auto;scroll-behavior:smooth;scroll-padding-top:calc(84px + env(safe-area-inset-top,0px))}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.65 var(--sans);-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:var(--serif);font-weight:400;margin:0;letter-spacing:-.02em}
+h1{font-size:clamp(48px,7.4vw,112px);line-height:.95}h2{font-size:clamp(32px,4vw,52px);line-height:1}h3{font-size:26px;line-height:1.1}
+h1 i,h2 i{color:var(--acc)}a{color:inherit;text-decoration:none}svg{display:block}p{margin:0}
+.wrap{width:min(var(--w),100% - var(--edge)*2);margin:0 auto}
+:focus-visible{outline:2px solid var(--acc);outline-offset:3px}
+.btn{display:inline-flex;align-items:center;gap:10px;background:var(--ink);color:var(--bg);border:0;border-radius:99px;padding:13px 24px;font:500 15px var(--sans);cursor:pointer;transition:background .3s,transform .3s,box-shadow .3s}
+.btn:hover{background:var(--acc);color:#fff;transform:translateY(-2px);box-shadow:0 12px 28px -10px rgba(15,91,104,.55)}.btn:active{transform:scale(.97)}
+.btn.ghost{background:transparent;color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink2)}.btn.ghost:hover{background:var(--card);color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+.ibtn{width:40px;height:40px;border-radius:50%;border:0;background:transparent;color:var(--ink);display:grid;place-items:center;cursor:pointer;transition:background .3s}.ibtn:hover,.ibtn.on{background:var(--bg2)}
+.alink{font:500 14px var(--sans);display:inline-flex;gap:8px;align-items:center;border:0;border-bottom:1px solid currentColor;background:none;color:var(--ink);padding:0 0 3px;cursor:pointer;transition:gap .3s,color .3s}.alink:hover{gap:12px;color:var(--acc)}
+/* header */
+.header{position:sticky;top:0;z-index:50;background:var(--hdr);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid transparent;transition:border-color .3s}.header.stuck{border-color:var(--line)}
+.hnav{height:76px;display:flex;align-items:center;justify-content:space-between;gap:24px}
+.logo{display:flex;align-items:center;gap:12px;font:400 26px var(--serif);letter-spacing:.2em}
+.logo i{width:32px;height:32px;border-radius:50%;background:radial-gradient(circle at 30% 25%,#2A8796,#0F5B68 60%);display:grid;place-items:center;box-shadow:0 0 0 4px rgba(15,91,104,.1),0 6px 16px -4px rgba(15,91,104,.6)}
+.menu{display:flex;list-style:none;margin:0;padding:0;gap:6px}.menu a{display:block;padding:8px 14px;border-radius:99px;font-size:14px;color:var(--ink2);transition:.25s}.menu a:hover,.menu a.cur{color:var(--ink);background:var(--bg2)}
+.hright{display:flex;align-items:center;gap:4px}
+/* hero */
+.hero{position:relative;overflow:hidden;padding:clamp(28px,5vw,56px) 0 clamp(40px,6vw,72px)}
+.hbg{position:absolute;top:0;right:0;bottom:0;width:62%;z-index:0;-webkit-mask-image:linear-gradient(90deg,transparent,#000 40%);mask-image:linear-gradient(90deg,transparent,#000 40%);background:radial-gradient(circle at 70% 40%,var(--tint),transparent 62%),radial-gradient(circle at 98% 100%,rgba(143,217,196,.4),transparent 50%)}
+.hbg svg{position:absolute;inset:0;width:100%;height:100%}.orb{transform-origin:600px 300px;animation:rot 120s linear infinite}@keyframes rot{to{transform:rotate(360deg)}}
+.hero .wrap{position:relative;z-index:1}
+.crumbs{font-size:13px;color:var(--ink2);margin-bottom:34px;display:flex;gap:10px}.crumbs b{font-weight:500;color:var(--ink)}
+.who{display:grid;grid-template-columns:auto 1fr;gap:clamp(20px,4vw,48px);align-items:center}
+.ava{width:clamp(96px,13vw,172px);aspect-ratio:1;border-radius:50%;background:radial-gradient(circle at 30% 25%,#2A8796,#0F5B68 62%);color:#fff;display:grid;place-items:center;font:400 clamp(36px,5vw,64px) var(--serif);letter-spacing:.04em;box-shadow:0 0 0 8px rgba(15,91,104,.1),0 0 0 22px rgba(15,91,104,.05),0 24px 50px -20px rgba(15,91,104,.6)}
+.who h1{max-width:10ch}
+.sub{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;margin:22px 0 28px;color:var(--ink2);font-size:15px}
+.chip{display:inline-flex;align-items:center;gap:8px;background:var(--tint);color:var(--acc);border-radius:99px;padding:5px 14px;font-size:13px;font-weight:500}.chip::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--mint);box-shadow:0 0 0 3px rgba(143,217,196,.35)}
+.acts{display:flex;gap:12px;flex-wrap:wrap}
+.float{position:absolute;right:0;bottom:6px;z-index:2;background:color-mix(in srgb,var(--card) 92%,transparent);backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:20px;box-shadow:0 24px 50px -24px rgba(28,34,39,.35);padding:16px 20px;display:flex;gap:14px;align-items:center;font-size:14px;animation:bob 6s ease-in-out infinite}
+.float b{display:block;font-weight:500}.float small{color:var(--ink2);font-size:12px}.float .dot{width:38px;height:38px;border-radius:50%;background:var(--tint);color:var(--acc);display:grid;place-items:center}
+@keyframes bob{50%{transform:translateY(-8px)}}
+/* sections */
+section.s{padding:clamp(48px,7vw,96px) 0;border-top:1px solid var(--line)}
+.shead{display:flex;justify-content:space-between;align-items:end;gap:20px;margin-bottom:clamp(28px,4vw,48px);flex-wrap:wrap}.shead p{color:var(--ink2);font-size:14px}
+.bg2{background:var(--bg2)}
+.stats{display:grid;grid-template-columns:repeat(4,1fr)}
+.stats>div{padding:0 clamp(14px,2.4vw,36px);border-left:1px solid var(--line)}.stats>div:first-child{padding-left:0;border:0}
+.stats .l{font-size:14px;color:var(--ink2)}
+.stats b{font:400 clamp(48px,6.4vw,92px)/1 var(--serif);letter-spacing:-.03em;display:block;margin:10px 0 6px}.stats b small{font:400 14px var(--sans);letter-spacing:0;color:var(--ink2);margin-left:6px}
+.ok{display:inline-block;background:var(--okbg);color:var(--ok);border-radius:99px;padding:3px 12px;font-size:12px;font-weight:500}
+.split{display:grid;grid-template-columns:5fr 7fr;gap:clamp(30px,6vw,100px)}
+.sticky{position:sticky;top:110px;align-self:start}.sticky p{color:var(--ink2);margin:20px 0 28px;max-width:36ch}
+.pr{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--line)}
+.pr div{padding:18px 20px 18px 0;border-bottom:1px solid var(--line);font-size:14px;color:var(--ink2)}.pr b{display:block;color:var(--ink);font-weight:500;font-size:16px;margin-top:3px}
+.docs{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.dc{background:var(--card);border:1px solid var(--line);border-radius:28px;padding:26px;display:flex;flex-direction:column;gap:34px;transition:transform .4s,box-shadow .4s}
+.dc:hover{transform:translateY(-4px);box-shadow:0 30px 60px -34px rgba(28,34,39,.4)}
+.dc .t{display:flex;justify-content:space-between;align-items:center;font-size:14px;color:var(--ink2)}
+.dc .ic{width:38px;height:38px;border-radius:50%;background:var(--tint);color:var(--acc);display:grid;place-items:center}
+.dc .n{font:400 clamp(24px,2.3vw,32px)/1.1 var(--serif);letter-spacing:.02em;word-break:break-word}
+/* visits */
+.vis{list-style:none;margin:0;padding:0;border-top:1px solid var(--line)}
+.vis li{display:grid;grid-template-columns:150px 1fr auto auto;gap:22px;align-items:center;padding:24px 0;border-bottom:1px solid var(--line);transition:padding .4s}
+.vis li:hover{padding-left:12px}
+.vis .d{font-size:14px;color:var(--ink2)}.vis h3{font-size:clamp(24px,2.6vw,34px)}.vis h3 small{display:block;font:400 13px var(--sans);color:var(--ink2);margin-top:4px}
+.st{border-radius:99px;padding:5px 14px;font-size:12px;font-weight:500;white-space:nowrap}.st.w{background:var(--tint);color:var(--acc)}.st.d{background:var(--okbg);color:var(--ok)}
+.dl{width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:none;color:var(--ink);display:grid;place-items:center;cursor:pointer;transition:.35s}
+.dl:hover{background:var(--acc);border-color:var(--acc);color:#fff;transform:translateY(2px)}
+/* messages */
+.fab{position:fixed;right:max(24px,env(safe-area-inset-right));bottom:calc(24px + env(safe-area-inset-bottom,0px));z-index:60;display:flex;gap:10px;align-items:center;border:0;border-radius:99px;padding:12px 20px 12px 14px;background:var(--ink);color:var(--bg);font:500 14px var(--sans);cursor:pointer;box-shadow:0 18px 40px -14px rgba(28,34,39,.6);transition:.3s}
+.fab:hover{background:var(--acc);color:#fff;transform:translateY(-3px)}
+.fab i{font-style:normal;min-width:22px;height:22px;border-radius:99px;background:var(--mint);color:#0A4651;display:grid;place-items:center;font-size:12px;font-weight:600}
+.panel{position:fixed;right:max(24px,env(safe-area-inset-right));bottom:calc(88px + env(safe-area-inset-bottom,0px));width:min(360px,100% - 32px);z-index:59;background:var(--card);border:1px solid var(--line);border-radius:28px;box-shadow:0 40px 80px -30px rgba(10,70,81,.5);overflow:hidden;opacity:0;transform:translateY(14px) scale(.97);pointer-events:none;transition:.3s cubic-bezier(.2,.8,.2,1)}
+.panel.open{opacity:1;transform:none;pointer-events:auto}
+.ph{display:flex;justify-content:space-between;align-items:center;padding:18px 22px;border-bottom:1px solid var(--line);font-weight:500}.ph small{display:block;color:var(--ink2);font-weight:400;font-size:12px}
+.pb{padding:34px 28px 18px;text-align:center;color:var(--ink2);font-size:14px}.pb b{display:grid;place-items:center;width:56px;height:56px;margin:0 auto 14px;border-radius:50%;background:var(--tint);color:var(--acc);font-size:22px}.pb h3{color:var(--ink);margin-bottom:8px}
+.pf{padding:0 22px 22px}.pf .btn{width:100%;justify-content:center}
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);z-index:90;background:var(--ink);color:var(--bg);border-radius:99px;padding:12px 22px;font-size:14px;opacity:0;pointer-events:none;transition:.35s}.toast.on{opacity:1;transform:translate(-50%,0)}
+/* footer */
+footer{border-top:1px solid var(--line);padding:36px 0;background:var(--bg2);font-size:12px;color:var(--ink2);line-height:1.6}
+footer .wrap{display:flex;justify-content:space-between;gap:30px;flex-wrap:wrap}footer p{max-width:70ch}
+@media(max-width:960px){.menu{display:none}.float{display:none}.hbg{width:100%}.split{grid-template-columns:1fr}.sticky{position:static}.docs{grid-template-columns:1fr}.stats{grid-template-columns:1fr 1fr;gap:36px 0}.stats>div:nth-child(3){padding-left:0;border:0}.vis li{grid-template-columns:1fr auto;gap:8px 16px}.vis .d{grid-column:1/-1}.vis .st{grid-column:1;justify-self:start}.vis .dl{grid-row:2/4;grid-column:2}}
+@media(max-width:560px){.who{grid-template-columns:1fr}.pr{grid-template-columns:1fr}.fab span{display:none}.fab{padding:12px}.panel{bottom:calc(84px + env(safe-area-inset-bottom,0px))}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+@media print{.header,.fab,.panel,.acts,.dl{display:none}}
+</style>
+</head>
+<body>
+<header class="header" id="hd"><div class="wrap hnav">
+ <a class="logo" href="#"><i><svg width="17" height="17" viewBox="0 0 24 24"><path d="M12 21.5s-8.5-5.4-8.5-11.6A4.8 4.8 0 0 1 12 7a4.8 4.8 0 0 1 8.5 2.9c0 6.2-8.5 11.6-8.5 11.6z" fill="#fff"/><path d="M5.5 12.5h3.2l1.6-3.2 2.6 6 1.8-2.8h3.8" fill="none" stroke="#0F5B68" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></i>SIRIUS</a>
+ <ul class="menu"><li><a href="#">Направления</a></li><li><a href="#">Врачи</a></li><li><a href="#">ИИ-ассистент</a></li><li><a href="#" class="cur">Личный кабинет</a></li></ul>
+ <div class="hright">
+  <button class="ibtn" aria-label="Поиск"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg></button>
+  <button class="ibtn" aria-label="Уведомления"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M6 17V11a6 6 0 0 1 12 0v6l1.5 2h-15zM10 21h4"/></svg></button>
+  <button class="ibtn on" aria-label="Личный кабинет"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="7.5" r="4"/><path d="M4 21v-1.5a5 5 0 0 1 5-5h6a5 5 0 0 1 5 5V21"/></svg></button>
+ </div></div></header>
+
+<main>
+<div class="hero">
+ <div class="hbg" aria-hidden="true"><svg viewBox="0 0 900 600" preserveAspectRatio="xMidYMid slice"><g class="orb"><circle cx="600" cy="300" r="120" fill="none" stroke="#0F5B68" stroke-opacity=".28"/><circle cx="600" cy="300" r="210" fill="none" stroke="#0F5B68" stroke-opacity=".2"/><circle cx="600" cy="300" r="310" fill="none" stroke="#0F5B68" stroke-opacity=".14"/><circle cx="600" cy="300" r="420" fill="none" stroke="#0F5B68" stroke-opacity=".08"/><circle cx="720" cy="300" r="5" fill="#0F5B68"/><circle cx="390" cy="300" r="4" fill="#8FD9C4"/><circle cx="600" cy="90" r="4" fill="#0F5B68" fill-opacity=".6"/></g></svg></div>
+ <div class="wrap">
+  <div class="crumbs"><span>Личный кабинет</span><span>/</span><b>Профиль</b></div>
+  <div class="who">
+   <div class="ava" id="avatar">МИ</div>
+   <div>
+    <h1 id="fullName">Мария Иванова</h1>
+    <div class="sub"><span class="chip">Активный пациент</span><span id="email">m.ivanova@example.ru</span><span id="phone">+7 (900) 123-45-67</span></div>
+    <div class="acts"><button class="btn" onclick="toast('Открыта форма редактирования профиля')">Редактировать профиль</button><button class="btn ghost" onclick="openMsg()">Написать в клинику</button></div>
+   </div>
+  </div>
+  <div class="float"><div class="dot">✓</div><div><b>Пациент с 4 окт. 2026</b><small>Последний визит — 04 окт. 2026</small></div></div>
+ </div>
+</div>
+
+<section class="s bg2"><div class="wrap">
+ <div class="shead"><h2>Текущие <i>показатели</i></h2><p>Данные последнего осмотра</p></div>
+ <div class="stats">
+  <div><div class="l">Артериальное давление</div><b>120/80<small>мм рт. ст.</small></b><span class="ok">В норме</span></div>
+  <div><div class="l">Пульс</div><b>76<small>уд/мин</small></b><span class="ok">В норме</span></div>
+  <div><div class="l">Глюкоза</div><b>5.2<small>ммоль/л</small></b><span class="ok">В норме</span></div>
+  <div><div class="l">Холестерин</div><b>4.7<small>ммоль/л</small></b><span class="ok">В норме</span></div>
+ </div>
+</div></section>
+
+<section class="s"><div class="wrap split">
+ <div class="sticky"><h2>О <i>пациенте</i></h2><p>Эти данные врач видит при записи и на приёме. Если что-то изменилось, обновите профиль.</p><button class="alink" onclick="toast('Открыта форма редактирования профиля')">Обновить данные →</button></div>
+ <div class="pr">
+  <div>Пол<b id="gender">Женский</b></div><div>Возраст<b id="age">42 года</b></div>
+  <div>Группа крови<b id="blood">A+</b></div><div>Дата регистрации<b id="registered">04 окт. 2026</b></div>
+  <div>Адрес<b id="address">г. Москва, ул. Ленина, д. 10</b></div><div>Экстренный контакт<b id="emergency">Анна Иванова, +7 (900) 987-65-43</b></div>
+ </div>
+</div></section>
+
+<section class="s bg2"><div class="wrap">
+ <div class="shead"><h2>Основные <i>документы</i></h2><button class="alink" id="eye" onclick="toggleMask()">Показать данные</button></div>
+ <div class="docs">
+  <div class="dc"><div class="t">СНИЛС<span class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M7 10h5M7 14h8"/></svg></span></div><div class="n" data-k="snils">—</div></div>
+  <div class="dc"><div class="t">Паспорт (серия, номер)<span class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="5" y="3" width="14" height="18" rx="3"/><circle cx="12" cy="10" r="3"/><path d="M9 16h6"/></svg></span></div><div class="n" data-k="passport">—</div></div>
+  <div class="dc"><div class="t">Медицинский полис<span class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3 5 6v5c0 5 3 8 7 10 4-2 7-5 7-10V6zM12 9v6M9 12h6"/></svg></span></div><div class="n" data-k="policy">—</div></div>
+ </div>
+</div></section>
+
+<section class="s"><div class="wrap">
+ <div class="shead"><h2>История <i>посещений</i></h2><p>Всего 12 посещений</p></div>
+ <ul class="vis">
+  <li><span class="d">04 окт. 2026</span><h3>Артериальная гипертензия<small>Степень: низкая · посещений: 1</small></h3><span class="st w">На наблюдении</span><button class="dl" onclick="toast('Загрузка медицинского документа')" aria-label="Скачать документ"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 4v12m-5-5 5 5 5-5M5 20h14"/></svg></button></li>
+  <li><span class="d">18 авг. 2026</span><h3>ОРВИ<small>Степень: низкая · посещений: 1</small></h3><span class="st d">Вылечен</span><button class="dl" onclick="toast('Загрузка медицинского документа')" aria-label="Скачать документ"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 4v12m-5-5 5 5 5-5M5 20h14"/></svg></button></li>
+  <li><span class="d">12 мар. 2026</span><h3>Профилактический осмотр<small>Степень: низкая · посещений: 1</small></h3><span class="st d">Завершён</span><button class="dl" onclick="toast('Загрузка медицинского документа')" aria-label="Скачать документ"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 4v12m-5-5 5 5 5-5M5 20h14"/></svg></button></li>
+ </ul>
+</div></section>
+</main>
+
+<footer><div class="wrap"><p>Имеются противопоказания, необходима консультация специалиста. Информация не заменяет очную консультацию врача. © 2026 SIRIUS.</p><p style="text-align:right">+7 915 163-07-01</p></div></footer>
+
+<button class="fab" onclick="openMsg()" aria-label="Открыть сообщения"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16v11H9l-5 4z"/></svg><span>Сообщения</span><i>2</i></button>
+<div class="panel" id="panel" aria-hidden="true">
+ <div class="ph"><div>Сообщения<small>Связь с клиникой</small></div><button class="ibtn" onclick="closeMsg()" aria-label="Закрыть">✕</button></div>
+ <div class="pb"><b>✉</b><h3>Новые сообщения</h3>Здесь будут сообщения от вашего врача и клиники.</div>
+ <div class="pf"><button class="btn" onclick="toast('Открыта форма нового сообщения')">Новое сообщение</button></div>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+// Замените объект данными вашего API.
+const patient={full_name:"Мария Иванова",age:42,gender:"Женский",phone_number:"+7 (900) 123-45-67",address:"г. Москва, ул. Ленина, д. 10",blood_group:"A+",emergency_contact:"Анна Иванова, +7 (900) 987-65-43",created_at:"2026-10-04T11:37:18.304Z",snils:"123-456-789 00",passport_series:"4512",passport_number:"123456",medical_policy:"1234 5678 9012 3456"};
+const $=id=>document.getElementById(id);let shown=false;
+const mask=s=>s?s.replace(/\d(?=(?:\D*\d){4})/g,"•"):"Не указан";
+function load(p){
+ $("fullName").textContent=p.full_name;
+ $("avatar").textContent=p.full_name.split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0].toUpperCase()).join("");
+ const m=p.age%10,h=p.age%100;$("age").textContent=p.age+" "+(h>10&&h<15?"лет":m===1?"год":m>1&&m<5?"года":"лет");
+ $("gender").textContent=p.gender;$("phone").textContent=p.phone_number;$("blood").textContent=p.blood_group;
+ $("address").textContent=p.address||"Не указан";$("emergency").textContent=p.emergency_contact||"Не указан";
+ $("registered").textContent=new Date(p.created_at).toLocaleDateString("ru-RU",{day:"2-digit",month:"short",year:"numeric"});
+ render();
+}
+function docs(){return{snils:patient.snils,passport:`${patient.passport_series||""} ${patient.passport_number||""}`.trim(),policy:patient.medical_policy}}
+function render(){const d=docs();document.querySelectorAll("[data-k]").forEach(e=>{const v=d[e.dataset.k];e.textContent=shown?(v||"Не указан"):mask(v)});$("eye").textContent=shown?"Скрыть данные":"Показать данные"}
+function toggleMask(){shown=!shown;render()}
+function openMsg(){$("panel").classList.add("open");$("panel").setAttribute("aria-hidden","false")}
+function closeMsg(){$("panel").classList.remove("open");$("panel").setAttribute("aria-hidden","true")}
+let tt;function toast(t){const e=$("toast");e.textContent=t;e.classList.add("on");clearTimeout(tt);tt=setTimeout(()=>e.classList.remove("on"),2200)}
+addEventListener("keydown",e=>{if(e.key==="Escape")closeMsg()});
+addEventListener("scroll",()=>$("hd").classList.toggle("stuck",scrollY>8),{passive:true});
+load(patient);
+</script>
+</body>
+</html>

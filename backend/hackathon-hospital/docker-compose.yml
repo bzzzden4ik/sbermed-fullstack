@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: clinic_postgres_db
+    restart: always
+    environment:
+      POSTGRES_DB: clinic_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: vinod123
+    ports:
+      - "5433:5432" # Use 5433 host port to avoid collision with any running local postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  web:
+    build: .
+    container_name: clinic_fastapi_app
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql+psycopg2://postgres:vinod123@db:5432/clinic_db
+      - SECRET_KEY=supersecretkeyclinicmanagement12345!@#$$%
+      - ALGORITHM=HS256
+      - ACCESS_TOKEN_EXPIRE_MINUTES=60
+      - UPLOAD_DIR=uploads
+    depends_on:
+      - db
+    volumes:
+      - ./uploads:/app/uploads
+
+volumes:
+  postgres_data:

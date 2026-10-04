@@ -65,6 +65,16 @@ def assign_doctor(db: Session, specialization: str) -> Optional[Doctor]:
     return base.first()
 
 
+def latest_submitted_case(db: Session, patient_id: int) -> Optional[PatientCase]:
+    """The patient's most recently sent case (drafts still being collected are ignored)."""
+    return (
+        db.query(PatientCase)
+        .filter(PatientCase.patient_id == patient_id, PatientCase.status.notin_(COLLECTING_STATUSES))
+        .order_by(PatientCase.submitted_at.desc(), PatientCase.id.desc())
+        .first()
+    )
+
+
 def get_case_for_user(db: Session, case_id: int, current_user: User) -> PatientCase:
     """Load a case and enforce role-based access: patients own cases, doctors assigned or referring cases."""
     case = db.query(PatientCase).filter(PatientCase.id == case_id).first()
@@ -77,7 +87,14 @@ def get_case_for_user(db: Session, case_id: int, current_user: User) -> PatientC
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied to another patient's case")
     elif current_user.role == "doctor":
         doctor = get_doctor_profile(db, current_user)
-        if case.status in COLLECTING_STATUSES or doctor.id not in (case.doctor_id, case.referred_from_doctor_id):
+        involved = doctor.id in (case.doctor_id, case.referred_from_doctor_id)
+        # Read access to the earlier case when this doctor handles its follow-up.
+        follow_up_of_mine = db.query(PatientCase).filter(
+            PatientCase.related_case_id == case.id,
+            PatientCase.doctor_id == doctor.id,
+            PatientCase.status.notin_(COLLECTING_STATUSES),
+        ).first() is not None
+        if case.status in COLLECTING_STATUSES or not (involved or follow_up_of_mine):
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied to cases of other doctors")
     return case
 
@@ -109,6 +126,17 @@ def list_cases(
         query = query.filter(PatientCase.status == status_filter)
 
     return query.order_by(PatientCase.updated_at.desc(), PatientCase.id.desc()).offset(skip).limit(limit).all()
+
+
+@router.get("/latest", response_model=Optional[PatientCaseResponse], operation_id="get_my_latest_case")
+def get_latest_case(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(patient_only)
+):
+    """Return the patient's most recently submitted case: complaint, AI summary, status,
+    the doctor's decision and comment. Returns null if the patient has never sent a case."""
+    patient = get_patient_profile(db, current_user)
+    return latest_submitted_case(db, patient.id)
 
 
 @router.get("/specializations", response_model=List[str])
@@ -143,6 +171,15 @@ def submit_case(
     if not conversation:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
 
+    if case_in.related_case_id is not None:
+        related = db.query(PatientCase).filter(
+            PatientCase.id == case_in.related_case_id,
+            PatientCase.patient_id == patient.id,
+            PatientCase.status.notin_(COLLECTING_STATUSES),
+        ).first()
+        if not related:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Related case not found")
+
     case = db.query(PatientCase).filter(PatientCase.conversation_id == conversation.id).first()
     if case and case.status not in COLLECTING_STATUSES:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"Case #{case.id} has already been sent to a doctor")
@@ -158,13 +195,15 @@ def submit_case(
     case.ai_summary = case_in.summary.model_dump()
     case.specialization = case_in.specialization
     case.urgency = case_in.urgency
+    case.related_case_id = case_in.related_case_id
     case.doctor_id = doctor.id
     case.status = "READY_FOR_DOCTOR"
     case.submitted_at = _utc_now()
     db.flush()
 
+    follow_up = f" (повторное по обращению №{case.related_case_id})" if case.related_case_id else ""
     notify(db, doctor.user_id, case.id, "Новое обращение пациента",
-           f"Обращение №{case.id} от {patient.full_name}: {case.complaint}")
+           f"Обращение №{case.id}{follow_up} от {patient.full_name}: {case.complaint}")
     db.commit()
     db.refresh(case)
     return case

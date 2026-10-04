@@ -265,6 +265,7 @@ class CaseSubmit(BaseModel):
     summary: CaseSummary
     specialization: str = Field(..., min_length=2, description="Most appropriate doctor specialization, chosen from the clinic's list")
     urgency: str = Field(..., description="low, medium or high")
+    related_case_id: Optional[int] = Field(None, description="ID of the patient's earlier case when this complaint is a follow-up of it (worsening or no improvement)")
 
     @field_validator("urgency")
     @classmethod
@@ -304,6 +305,7 @@ class PatientCaseResponse(BaseModel):
     decision: Optional[str] = None
     doctor_comment: Optional[str] = None
     conversation_id: Optional[int] = None
+    related_case_id: Optional[int] = None
     created_at: datetime.datetime
     updated_at: datetime.datetime
     submitted_at: Optional[datetime.datetime] = None

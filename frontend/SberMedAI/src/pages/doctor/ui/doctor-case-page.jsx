@@ -71,6 +71,12 @@ export function DoctorCasePage() {
                                     <span>Отправлено {formatDateTime(item.submitted_at)}</span>
                                 </div>
                                 <h1 style={{ fontSize: 'clamp(36px, 5vw, 72px)', maxWidth: '20ch' }}>{item.complaint}</h1>
+                                {item.related_case_id && (
+                                    <p className="muted" style={{ marginTop: 18 }}>
+                                        Повторное обращение: пациенту не стало лучше после{' '}
+                                        <Link className="alink" to={`/doctor/cases/${item.related_case_id}`}>обращения №{item.related_case_id}</Link>
+                                    </p>
+                                )}
                                 {item.referred_from_doctor && (
                                     <p className="muted" style={{ marginTop: 18 }}>
                                         Направлено врачом {item.referred_from_doctor.full_name} ({item.referred_from_doctor.specialization})

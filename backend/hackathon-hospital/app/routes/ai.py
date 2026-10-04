@@ -12,7 +12,7 @@ from app.config import settings
 from app.database import get_db
 from app.models import Conversation, Message, Patient, PatientCase, User
 from app.routes.auth import RoleChecker, bearer_scheme, get_current_user, get_patient_profile
-from app.routes.cases import COLLECTING_STATUSES, available_specializations
+from app.routes.cases import COLLECTING_STATUSES, available_specializations, latest_submitted_case
 from app.utils.ai_runner import ai_runner, build_intake_instructions
 
 router = APIRouter(tags=["AI"])
@@ -118,13 +118,25 @@ def ensure_conversation_case(db: Session, conversation: Conversation, patient: P
     return case
 
 
-def build_instructions(db: Session, conversation_id: int, patient: Patient, case: PatientCase) -> str:
+def build_instructions(
+    db: Session, conversation_id: int, patient: Patient, case: PatientCase, is_first_message: bool = False
+) -> str:
     return build_intake_instructions(
         conversation_id=conversation_id,
         specializations=available_specializations(db),
         patient_brief=f"{patient.full_name}, возраст {patient.age}, пол: {patient.gender}",
         case_status=case.status,
+        is_first_message=is_first_message,
+        latest_case_brief=describe_latest_case(db, patient, case),
     )
+
+
+def describe_latest_case(db: Session, patient: Patient, current_case: PatientCase) -> str:
+    """One-line pointer to the patient's earlier case, so its id survives between turns (tool results are not stored)."""
+    latest = latest_submitted_case(db, patient.id)
+    if not latest or latest.id == current_case.id:
+        return "none"
+    return f"case No. {latest.id}, status {latest.status}, complaint: {latest.complaint[:200]}"
 
 
 def build_conversation_response(conversation: Conversation, case: PatientCase | None = None) -> ConversationResponse:
@@ -239,7 +251,7 @@ async def create_conversation(
             conversation_id=conversation.id,
             context=context,
             user_token=user_token,
-            instructions=build_instructions(db, conversation.id, patient, case),
+            instructions=build_instructions(db, conversation.id, patient, case, is_first_message=True),
         )
     except HTTPException:
         # Do not leave a half-created conversation behind, so a retry does not duplicate it.
@@ -326,7 +338,7 @@ async def send_conversation_message(
             conversation_id=conversation.id,
             context=context,
             user_token=user_token,
-            instructions=build_instructions(db, conversation.id, patient, case),
+            instructions=build_instructions(db, conversation.id, patient, case, is_first_message=len(context) == 1),
         )
     except HTTPException:
         # Drop the unanswered message so the patient can resend it without duplicates.

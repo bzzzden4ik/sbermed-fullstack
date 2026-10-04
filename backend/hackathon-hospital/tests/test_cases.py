@@ -155,3 +155,47 @@ def test_submit_requires_patient_role_and_valid_payload(client, admin_headers, m
     payload["urgency"] = "high"
     assert client.post("/cases/submit", json=payload, headers=admin_headers).status_code == 403
     assert client.post("/cases/submit", json=payload).status_code == 401
+
+
+def test_latest_case_and_follow_up_link(client, admin_headers, make_patient, fake_ai):
+    gp_headers, gp_id, cardio_headers, cardio_id = setup_clinic(client, admin_headers)
+    headers, _ = make_patient("followup@clinic.com", "9000000040")
+    other_headers, _ = make_patient("followup-other@clinic.com", "9000000041")
+
+    # No sent case yet: the tool returns null (drafts don't count).
+    first_conversation, _ = start_case(client, headers)
+    assert client.get("/cases/latest", headers=headers).json() is None
+    assert "first message of the conversation: yes" in fake_ai[0]["instructions"]
+
+    first = client.post("/cases/submit", json={
+        "conversation_id": first_conversation, "summary": SUMMARY, "specialization": "Cardiology", "urgency": "medium",
+    }, headers=headers).json()
+    client.post(f"/cases/{first['id']}/decision", json={
+        "decision": "NO_EXAMINATION_NEEDED", "comment": "Наблюдайте за давлением",
+    }, headers=cardio_headers)
+
+    latest = client.get("/cases/latest", headers=headers).json()
+    assert latest["id"] == first["id"]
+    assert latest["decision"] == "NO_EXAMINATION_NEEDED"
+    assert latest["doctor_comment"] == "Наблюдайте за давлением"
+    assert client.get("/cases/latest", headers=other_headers).json() is None
+    assert client.get("/cases/latest", headers=cardio_headers).status_code == 403
+
+    # Follow-up complaint linked to the earlier case; another patient's case cannot be linked.
+    second_conversation, _ = start_case(client, headers)
+    assert f"latest sent case (earlier than this conversation): case No. {first['id']}, status RESOLVED" in fake_ai[-1]["instructions"]
+    payload = {"conversation_id": second_conversation, "summary": SUMMARY, "specialization": "General Medicine", "urgency": "high"}
+    foreign_conversation, _ = start_case(client, other_headers)
+    assert client.post("/cases/submit", json={**payload, "conversation_id": foreign_conversation, "related_case_id": first["id"]},
+                       headers=other_headers).status_code == 404
+    follow_up = client.post("/cases/submit", json={**payload, "related_case_id": first["id"]}, headers=headers)
+    assert follow_up.status_code == 201
+    assert follow_up.json()["related_case_id"] == first["id"]
+    assert follow_up.json()["doctor"]["id"] == gp_id
+    assert client.get("/cases/latest", headers=headers).json()["id"] == follow_up.json()["id"]
+
+    # The doctor handling the follow-up can read the earlier case, but cannot decide on it.
+    assert client.get(f"/cases/{first['id']}", headers=gp_headers).status_code == 200
+    assert client.post(f"/cases/{first['id']}/decision", json={"decision": "NO_EXAMINATION_NEEDED"}, headers=gp_headers).status_code == 403
+    gp_notes = client.get("/notifications", headers=gp_headers).json()
+    assert f"повторное по обращению №{first['id']}" in gp_notes[0]["message"]

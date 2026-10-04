@@ -83,6 +83,6 @@ def read_root():
 mcp = FastApiMCP(
     app,
     name="SIRIUS Hospital MCP",
-    include_operations=["submit_patient_case", "list_my_cases"],
+    include_operations=["get_my_latest_case", "submit_patient_case", "list_my_cases"],
 )
 mcp.mount_sse(mount_path="/mcp")

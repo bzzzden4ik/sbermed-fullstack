@@ -200,6 +200,7 @@ class PatientCase(Base):
     doctor_id: Mapped[Optional[int]] = mapped_column(ForeignKey("doctors.id", ondelete="SET NULL"), nullable=True, index=True)
     referred_from_doctor_id: Mapped[Optional[int]] = mapped_column(ForeignKey("doctors.id", ondelete="SET NULL"), nullable=True)
     conversation_id: Mapped[Optional[int]] = mapped_column(ForeignKey("conversations.id", ondelete="SET NULL"), unique=True, nullable=True)
+    related_case_id: Mapped[Optional[int]] = mapped_column(ForeignKey("patient_cases.id", ondelete="SET NULL"), nullable=True)  # follow-up of an earlier case
     complaint: Mapped[str] = mapped_column(Text)
     ai_summary: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
     specialization: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)

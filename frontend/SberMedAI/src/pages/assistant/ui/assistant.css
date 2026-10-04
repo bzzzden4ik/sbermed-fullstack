@@ -57,6 +57,13 @@
   .chips button:hover { border-color: var(--acc); color: var(--acc); }
   .chips button:disabled { opacity: .5; cursor: wait; }
 
+  .lastcase { text-align: left; background: var(--bg2); border: 1px solid var(--line); border-radius: 24px; padding: 18px 22px; margin: 0 0 20px; display: flex; flex-direction: column; gap: 6px; }
+  .lastcase .lc-h { display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: 12px; color: var(--ink2); flex-wrap: wrap; }
+  .lastcase b { font: 400 22px/1.2 var(--serif); }
+  .lastcase .lc-dec { margin: 0; color: var(--ink2); font-size: 14px; }
+  .lastcase blockquote { margin: 4px 0 0; padding-left: 12px; border-left: 2px solid var(--acc); font-size: 14px; white-space: pre-wrap; }
+  .welcome .lc-new { margin: 16px 0 0; font-size: 13px; }
+
   .comp { position: relative; padding: 8px clamp(12px, 3vw, 40px) 18px; }
   .pill { position: relative; display: flex; align-items: flex-end; gap: 6px; border: 1px solid var(--line); background: var(--bg); border-radius: 30px; padding: 6px 6px 6px 20px; min-height: 58px; transition: border-color .3s, box-shadow .3s; }
   .pill:focus-within { border-color: var(--acc); box-shadow: 0 0 0 4px rgba(15, 91, 104, .1); }

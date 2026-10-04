@@ -7,13 +7,37 @@ import { SiteHeader } from '@/widgets/site-header'
 import { useToast } from '@/shared/ui/toast-context.js'
 import { StatusChip } from '@/shared/ui/common.jsx'
 import { SparkIcon, PlusIcon, SearchIcon, CloseIcon, MicIcon, SendIcon, TrashIcon, MenuIcon } from '@/shared/ui/icons.jsx'
+import { getLatestCase } from '@/entities/case'
 import { getErrorMessage } from '@/shared/api/axios-client.js'
-import { CASE_STATUS } from '@/shared/lib/labels.js'
-import { dayGroup, formatTime } from '@/shared/lib/format.js'
+import { CASE_DECISION, CASE_STATUS } from '@/shared/lib/labels.js'
+import { dayGroup, formatDate, formatTime } from '@/shared/lib/format.js'
 import { useVoiceRecorder } from '../lib/use-voice-recorder.js'
 import './assistant.css'
 
 const SUGGESTIONS = ['Болит голова', 'Повышенное давление', 'Ухудшилось зрение', 'Боль в спине']
+const CHECK_IN = ['Мне стало лучше', 'Лучше не стало', 'Стало хуже', 'Появились новые симптомы']
+
+/** Last sent case and the doctor's answer, read from the database (no AI) for the follow-up start screen. */
+const LastCaseCard = ({ item }) => {
+    const resolved = item.status === 'RESOLVED'
+    return (
+        <div className="lastcase">
+            <div className="lc-h">
+                <span>Обращение №{item.id} · {formatDate(item.submitted_at || item.created_at)}</span>
+                <StatusChip map={CASE_STATUS} value={item.status} />
+            </div>
+            <b>{item.complaint}</b>
+            {resolved ? (
+                <>
+                    <p className="lc-dec">Ответ врача{item.doctor ? ` (${item.doctor.full_name})` : ''}: {CASE_DECISION[item.decision]?.label || item.decision}</p>
+                    {item.doctor_comment && <blockquote>{item.doctor_comment}</blockquote>}
+                </>
+            ) : (
+                <p className="lc-dec">Обращение у врача{item.doctor ? ` ${item.doctor.full_name}` : ''} — решение придёт уведомлением и на почту.</p>
+            )}
+        </div>
+    )
+}
 const COLLECTING = ['OPEN', 'AI_COLLECTING']
 const fmtSeconds = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`
 
@@ -61,6 +85,13 @@ export function AssistantPage() {
             .catch((err) => toast.error(getErrorMessage(err)))
             .finally(() => setLoaded(true))
     }, [toast])
+
+    // Latest sent case for the follow-up check-in; refreshed whenever the start screen is shown.
+    const [latestCase, setLatestCase] = useState(undefined)
+    useEffect(() => {
+        if (currentId) return
+        getLatestCase().then(setLatestCase).catch(() => setLatestCase(null))
+    }, [currentId])
 
     // Deep link to a conversation that is not in the list (e.g. just after the list loaded empty).
     useEffect(() => {
@@ -234,14 +265,27 @@ export function AssistantPage() {
 
                     <div className="log" ref={logRef} aria-live="polite">
                         {messages.length === 0 && !currentId ? (
-                            <div className="welcome">
-                                <div className="orb"><SparkIcon size={34} /></div>
-                                <h2>Расскажите, <i>что беспокоит</i></h2>
-                                <p>Напишите или надиктуйте своими словами. Я задам несколько уточняющих вопросов, составлю сводку и с вашего согласия передам её врачу.</p>
-                                <div className="chips">
-                                    {SUGGESTIONS.map((s) => <button key={s} disabled={pending} onClick={() => send(s)}>{s}</button>)}
+                            latestCase ? (
+                                <div className="welcome">
+                                    <div className="orb"><SparkIcon size={34} /></div>
+                                    <h2>Как вы <i>себя чувствуете?</i></h2>
+                                    <p>Расскажите, как самочувствие после вашего последнего обращения. Если лучше не стало, я помогу оформить новое обращение к врачу.</p>
+                                    <LastCaseCard item={latestCase} />
+                                    <div className="chips">
+                                        {CHECK_IN.map((s) => <button key={s} disabled={pending} onClick={() => send(s)}>{s}</button>)}
+                                    </div>
+                                    <p className="lc-new">Другая проблема? Просто опишите её ниже.</p>
                                 </div>
-                            </div>
+                            ) : (
+                                <div className="welcome">
+                                    <div className="orb"><SparkIcon size={34} /></div>
+                                    <h2>Расскажите, <i>что беспокоит</i></h2>
+                                    <p>Напишите или надиктуйте своими словами. Я задам несколько уточняющих вопросов, составлю сводку и с вашего согласия передам её врачу.</p>
+                                    <div className="chips">
+                                        {SUGGESTIONS.map((s) => <button key={s} disabled={pending} onClick={() => send(s)}>{s}</button>)}
+                                    </div>
+                                </div>
+                            )
                         ) : (
                             messages.map((m) => <Bubble key={m.id} message={m} />)
                         )}

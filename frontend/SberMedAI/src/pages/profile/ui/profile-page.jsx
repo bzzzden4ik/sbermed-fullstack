@@ -23,6 +23,11 @@ const CaseDetail = ({ item, onBook }) => {
     const isFinal = item.status === 'RESOLVED'
     return (
         <div className="detail">
+            {item.related_case_id && (
+                <p className="muted" style={{ marginTop: 4 }}>
+                    Повторное обращение по <Link className="alink" to={`/profile?case=${item.related_case_id}#cases`}>обращению №{item.related_case_id}</Link>
+                </p>
+            )}
             <h4>Решение врача</h4>
             {decision ? (
                 <div className="decision">

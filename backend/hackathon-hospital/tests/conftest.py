@@ -103,8 +103,11 @@ def fake_ai(monkeypatch):
 
     calls = []
 
-    async def fake_ai_runner(*, user_token, context, instructions):
-        calls.append({"user_token": user_token, "context": context, "instructions": instructions})
+    async def fake_ai_runner(*, user_token, context, instructions, allowed_tools, agent_name="SIRIUS Assistant"):
+        calls.append({
+            "user_token": user_token, "context": context, "instructions": instructions,
+            "allowed_tools": allowed_tools, "agent_name": agent_name,
+        })
         return f"Ответ {len(calls)}"
 
     monkeypatch.setattr(ai, "ai_runner", fake_ai_runner)

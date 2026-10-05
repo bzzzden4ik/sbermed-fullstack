@@ -8,14 +8,54 @@ import { useToast } from '@/shared/ui/toast-context.js'
 import { StatusChip } from '@/shared/ui/common.jsx'
 import { SparkIcon, PlusIcon, SearchIcon, CloseIcon, MicIcon, SendIcon, TrashIcon, MenuIcon } from '@/shared/ui/icons.jsx'
 import { getLatestCase } from '@/entities/case'
+import { useSession } from '@/entities/session'
 import { getErrorMessage } from '@/shared/api/axios-client.js'
 import { CASE_DECISION, CASE_STATUS } from '@/shared/lib/labels.js'
 import { dayGroup, formatDate, formatTime } from '@/shared/lib/format.js'
 import { useVoiceRecorder } from '../lib/use-voice-recorder.js'
 import './assistant.css'
 
-const SUGGESTIONS = ['Болит голова', 'Повышенное давление', 'Ухудшилось зрение', 'Боль в спине']
 const CHECK_IN = ['Мне стало лучше', 'Лучше не стало', 'Стало хуже', 'Появились новые симптомы']
+
+/** Per-role assistant: the backend picks the agent by role; the screen only changes texts and routes. */
+const ROLE_ASSISTANT = {
+    patient: {
+        base: '/assistant',
+        sideTitle: 'Обращения',
+        newLabel: 'Новое обращение',
+        subtitle: 'готовит обращение к врачу',
+        welcomeTitle: <>Расскажите, <i>что беспокоит</i></>,
+        welcomeText: 'Напишите или надиктуйте своими словами. Я задам несколько уточняющих вопросов, составлю сводку и с вашего согласия передам её врачу.',
+        chips: ['Болит голова', 'Повышенное давление', 'Ухудшилось зрение', 'Боль в спине'],
+        placeholder: 'Опишите, что вас беспокоит…',
+        hint: 'Ассистент не ставит диагнозов и не заменяет консультацию врача.',
+        emptyHistory: 'Здесь появятся ваши диалоги с ассистентом',
+    },
+    doctor: {
+        base: '/doctor/assistant',
+        sideTitle: 'Диалоги',
+        newLabel: 'Новый диалог',
+        subtitle: 'помощник врача',
+        welcomeTitle: <>Чем помочь <i>сегодня?</i></>,
+        welcomeText: 'Я покажу вашу очередь обращений, открою сводку пациента, сравню с прошлым обращением и подготовлю черновик комментария. Решение вы сохраняете сами на странице обращения.',
+        chips: ['Покажи мою очередь', 'Есть срочные обращения?', 'Мои записи на сегодня', 'Открой последнее обращение'],
+        placeholder: 'Спросите про обращения, пациентов или записи…',
+        hint: 'Ассистент не принимает и не сохраняет решения — это делает врач.',
+        emptyHistory: 'Здесь появятся ваши диалоги с ассистентом',
+    },
+    admin: {
+        base: '/admin/assistant',
+        sideTitle: 'Диалоги',
+        newLabel: 'Новый диалог',
+        subtitle: 'аналитика клиники',
+        welcomeTitle: <>Что узнать <i>о клинике?</i></>,
+        welcomeText: 'Я соберу статистику, покажу загрузку врачей, найду врачей, пациентов и записи, подскажу, какие обращения ждут решения. Я только читаю данные и ничего не меняю.',
+        chips: ['Сводка по клинике', 'Загрузка врачей', 'Записи на сегодня', 'Обращения без решения'],
+        placeholder: 'Спросите о врачах, записях, обращениях…',
+        hint: 'Ассистент только читает данные; изменения делаются в панели администратора.',
+        emptyHistory: 'Здесь появятся ваши диалоги с ассистентом',
+    },
+}
 
 /** Last sent case and the doctor's answer, read from the database (no AI) for the follow-up start screen. */
 const LastCaseCard = ({ item }) => {
@@ -59,6 +99,9 @@ const Bubble = ({ message }) => (
 )
 
 export function AssistantPage() {
+    const { role } = useSession()
+    const cfg = ROLE_ASSISTANT[role] || ROLE_ASSISTANT.patient
+    const isPatient = role === 'patient'
     const { conversationId } = useParams()
     const currentId = conversationId ? Number(conversationId) : null
     const navigate = useNavigate()
@@ -89,17 +132,17 @@ export function AssistantPage() {
     // Latest sent case for the follow-up check-in; refreshed whenever the start screen is shown.
     const [latestCase, setLatestCase] = useState(undefined)
     useEffect(() => {
-        if (currentId) return
+        if (currentId || !isPatient) return
         getLatestCase().then(setLatestCase).catch(() => setLatestCase(null))
-    }, [currentId])
+    }, [currentId, isPatient])
 
     // Deep link to a conversation that is not in the list (e.g. just after the list loaded empty).
     useEffect(() => {
         if (!loaded || !currentId || conversations.some((c) => c.id === currentId)) return
         getConversation(currentId)
             .then((c) => setConversations((list) => [c, ...list]))
-            .catch(() => navigate('/assistant', { replace: true }))
-    }, [loaded, currentId, conversations, navigate])
+            .catch(() => navigate(cfg.base, { replace: true }))
+    }, [loaded, currentId, conversations, navigate, cfg.base])
 
     const current = conversations.find((c) => c.id === currentId) || null
     const messages = useMemo(() => {
@@ -140,7 +183,7 @@ export function AssistantPage() {
             if (!current) {
                 const conversation = await createConversation(text)
                 setConversations((list) => [conversation, ...list])
-                navigate(`/assistant/${conversation.id}`)
+                navigate(`${cfg.base}/${conversation.id}`)
             } else {
                 const result = await sendMessage(current.id, text)
                 setConversations((list) => list.map((c) => (c.id === result.conversation_id
@@ -178,7 +221,7 @@ export function AssistantPage() {
         try {
             await deleteConversation(conversation.id)
             setConversations((list) => list.filter((c) => c.id !== conversation.id))
-            if (conversation.id === currentId) navigate('/assistant')
+            if (conversation.id === currentId) navigate(cfg.base)
         } catch (err) {
             toast.error(getErrorMessage(err))
         }
@@ -212,8 +255,8 @@ export function AssistantPage() {
             <div className="app">
                 <aside className={`side${sideOpen ? ' open' : ''}`} aria-label="История диалогов">
                     <div className="side-h">
-                        <h2>Обращения</h2>
-                        <button className="btn" onClick={() => navigate('/assistant')} disabled={pending}><PlusIcon />Новое обращение</button>
+                        <h2>{cfg.sideTitle}</h2>
+                        <button className="btn" onClick={() => navigate(cfg.base)} disabled={pending}><PlusIcon />{cfg.newLabel}</button>
                     </div>
                     <label className="find">
                         <SearchIcon />
@@ -221,7 +264,7 @@ export function AssistantPage() {
                     </label>
                     <div className="hist">
                         {loaded && filtered.length === 0 && (
-                            <div className="empty-h">{query ? 'Ничего не найдено' : 'Здесь появятся ваши диалоги с ассистентом'}</div>
+                            <div className="empty-h">{query ? 'Ничего не найдено' : cfg.emptyHistory}</div>
                         )}
                         {filtered.map((c, idx) => {
                             const group = groups[idx]
@@ -233,8 +276,8 @@ export function AssistantPage() {
                                     <div
                                         role="button" tabIndex={0}
                                         className={`cv${c.id === currentId ? ' on' : ''}`}
-                                        onClick={() => navigate(`/assistant/${c.id}`)}
-                                        onKeyDown={(e) => { if (e.key === 'Enter') navigate(`/assistant/${c.id}`) }}
+                                        onClick={() => navigate(`${cfg.base}/${c.id}`)}
+                                        onKeyDown={(e) => { if (e.key === 'Enter') navigate(`${cfg.base}/${c.id}`) }}
                                     >
                                         <div>
                                             <b>{c.title || 'Новый диалог'}</b>
@@ -258,14 +301,14 @@ export function AssistantPage() {
                     <div className="top">
                         <button className="ibtn burger" aria-label="История диалогов" onClick={() => setSideOpen(true)}><MenuIcon /></button>
                         <div className="av"><SparkIcon size={16} /></div>
-                        <div><div>Ассистент SIRIUS</div><small>готовит обращение к врачу</small></div>
+                        <div><div>Ассистент SIRIUS</div><small>{cfg.subtitle}</small></div>
                         <span className="sp"></span>
                         {current?.case_id && <StatusChip map={CASE_STATUS} value={current.case_status} />}
                     </div>
 
                     <div className="log" ref={logRef} aria-live="polite">
                         {messages.length === 0 && !currentId ? (
-                            latestCase ? (
+                            isPatient && latestCase ? (
                                 <div className="welcome">
                                     <div className="orb"><SparkIcon size={34} /></div>
                                     <h2>Как вы <i>себя чувствуете?</i></h2>
@@ -279,10 +322,10 @@ export function AssistantPage() {
                             ) : (
                                 <div className="welcome">
                                     <div className="orb"><SparkIcon size={34} /></div>
-                                    <h2>Расскажите, <i>что беспокоит</i></h2>
-                                    <p>Напишите или надиктуйте своими словами. Я задам несколько уточняющих вопросов, составлю сводку и с вашего согласия передам её врачу.</p>
+                                    <h2>{cfg.welcomeTitle}</h2>
+                                    <p>{cfg.welcomeText}</p>
                                     <div className="chips">
-                                        {SUGGESTIONS.map((s) => <button key={s} disabled={pending} onClick={() => send(s)}>{s}</button>)}
+                                        {cfg.chips.map((s) => <button key={s} disabled={pending} onClick={() => send(s)}>{s}</button>)}
                                     </div>
                                 </div>
                             )
@@ -305,7 +348,7 @@ export function AssistantPage() {
                             </div>
                             <div className="acts">
                                 <Link className="btn sm" to={`/profile?case=${current.case_id}#cases`}>Открыть обращение</Link>
-                                <button className="btn sm ghost" onClick={() => navigate('/assistant')}>Новое обращение</button>
+                                <button className="btn sm ghost" onClick={() => navigate(cfg.base)}>Новое обращение</button>
                             </div>
                         </div>
                     ) : (
@@ -314,7 +357,7 @@ export function AssistantPage() {
                                 <textarea
                                     ref={inputRef}
                                     rows={1}
-                                    placeholder={transcribing ? 'Распознаём запись…' : 'Опишите, что вас беспокоит…'}
+                                    placeholder={transcribing ? 'Распознаём запись…' : cfg.placeholder}
                                     aria-label="Сообщение"
                                     value={input}
                                     disabled={transcribing}
@@ -340,7 +383,7 @@ export function AssistantPage() {
                                     <button className="act snd" aria-label="Распознать запись" onClick={() => stopRecording(true)}><SendIcon /></button>
                                 </div>
                             </div>
-                            <p className="hint">Enter — отправить, Shift+Enter — новая строка. Ассистент не ставит диагнозов и не заменяет консультацию врача.</p>
+                            <p className="hint">Enter — отправить, Shift+Enter — новая строка. {cfg.hint}</p>
                         </div>
                     )}
                 </section>

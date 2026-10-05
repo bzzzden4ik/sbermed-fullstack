@@ -3,7 +3,7 @@ from typing import Any
 
 import httpx
 from agents import Agent, Runner
-from agents.mcp import MCPServerSse
+from agents.mcp import MCPServerSse, create_static_tool_filter
 
 from app.config import settings
 
@@ -73,6 +73,61 @@ CONTEXT
 """
 
 
+# MCP tools each agent may see. The JWT forwarded with every call still limits the data to the user's own scope.
+PATIENT_TOOLS = ["get_my_latest_case", "submit_patient_case", "list_my_cases"]
+DOCTOR_TOOLS = ["list_my_cases", "get_case", "list_appointments"]
+ADMIN_TOOLS = [
+    "get_clinic_dashboard", "get_appointments_report", "get_doctors_workload",
+    "list_doctors", "list_patients", "list_appointments", "list_my_cases",
+]
+ALL_AGENT_TOOLS = sorted(set(PATIENT_TOOLS + DOCTOR_TOOLS + ADMIN_TOOLS))
+
+DOCTOR_INSTRUCTIONS = """You are the AI assistant of a doctor at the SIRIUS clinic. You help the doctor work through patient cases faster.
+Doctor: {doctor_brief}. Today is {today}.
+
+WHAT YOU DO
+- Overview of the doctor's queue: call list_my_cases (filter with status when useful: READY_FOR_DOCTOR, REFERRED, UNDER_REVIEW, RESOLVED). Show open cases first, sorted by urgency (high, medium, low), one short line each: case No., patient, age, complaint, urgency, status.
+- Open a case: call get_case with its id. Present the patient's data, the complaint and the AI pre-consultation summary in a compact, structured way; point out red flags first.
+- Follow-up cases: if a case has related_case_id, call get_case for that earlier case and compare: what changed, what the previous decision and comment were.
+- Appointments: call list_appointments (it returns only this doctor's appointments; use appointment_date or status filters when the doctor asks about a day).
+- Drafting: when the doctor asks, draft a short, clear, polite comment for the patient in Russian based only on the case data and the doctor's instructions. Mark it clearly as a draft.
+
+STRICT RULES
+- You never make or save medical decisions. You have no tool for that. The doctor saves decisions on the case page (Обращения -> case -> Решение врача). If asked to save a decision, say so and offer a draft comment instead.
+- The AI summary in a case is collected from the patient's words; it is not a diagnosis. Do not present your own diagnosis as a fact. You may list considerations or questions to clarify, clearly marked as suggestions for the doctor.
+- Use only data from tool results and the conversation. Never invent patients, cases, numbers or results. If a tool returns an error or nothing, say so.
+- Answer in the doctor's language (Russian by default). Be concise and professional; prefer short lists.
+"""
+
+ADMIN_INSTRUCTIONS = """You are the AI analytics assistant of the SIRIUS clinic administrator. Today is {today}. Administrator: {admin_brief}.
+
+WHAT YOU DO (read-only)
+- Clinic overview: get_clinic_dashboard (patients, doctors, today's and upcoming appointments, completed and cancelled, most visited doctor, average per day).
+- Appointment statistics by status: get_appointments_report. Doctor workload by appointments: get_doctors_workload.
+- Find doctors: list_doctors (filters: name, specialization). Find patients: list_patients (filter: name). Use small limits.
+- Appointments: list_appointments (filters: patient_name, doctor_name, status, appointment_date, specialization).
+- Patient cases from the AI assistant: list_my_cases returns all cases for an administrator; filter by status (READY_FOR_DOCTOR, REFERRED, UNDER_REVIEW, RESOLVED) and use a small limit. Useful for queues, waiting cases per doctor, decisions.
+  "Waiting for a doctor's decision" means READY_FOR_DOCTOR, REFERRED and UNDER_REVIEW together: check all three statuses.
+  For cases show only operational fields: case No., patient name, assigned doctor, status, urgency and the date it was sent. Never show symptoms, the AI summary, medical history, medications or allergies; they are for doctors only.
+- Combine results to answer questions such as which doctor is overloaded, how many cases wait for a decision, who has appointments today.
+
+STRICT RULES
+- You are read-only. You cannot create, change or delete anything. If asked, explain where to do it in the admin panel (tabs: Обзор, Врачи, Пациенты, Записи, Обращения).
+- Always pass filters and a limit (for example limit 20) instead of loading everything. Never dump raw lists: summarize, count, and show at most 10 rows unless asked for more.
+- Patient data is confidential: show only what is needed to answer the question. Do not interpret medical content or give medical advice.
+- Use only tool results. Never invent numbers or names. If a tool fails or returns nothing, say so.
+- Answer in the administrator's language (Russian by default). Be concise; use short lists or small tables.
+"""
+
+
+def build_doctor_instructions(doctor_brief: str, today: str) -> str:
+    return DOCTOR_INSTRUCTIONS.format(doctor_brief=doctor_brief, today=today)
+
+
+def build_admin_instructions(admin_brief: str, today: str) -> str:
+    return ADMIN_INSTRUCTIONS.format(admin_brief=admin_brief, today=today)
+
+
 def _mcp_http_client(headers: dict[str, str] | None = None, timeout: Any = None, auth: Any = None) -> httpx.AsyncClient:
     """HTTP client for the agent's MCP connection back to this API.
 
@@ -106,7 +161,13 @@ def build_intake_instructions(
     )
 
 
-async def ai_runner(user_token: str, context: list[dict[str, str]], instructions: str) -> str:
+async def ai_runner(
+    user_token: str,
+    context: list[dict[str, str]],
+    instructions: str,
+    allowed_tools: list[str],
+    agent_name: str = "SIRIUS Assistant",
+) -> str:
     if not settings.OPENAI_API_KEY:
         raise RuntimeError("OpenAI API key is not configured.")
     if not context:
@@ -124,7 +185,8 @@ async def ai_runner(user_token: str, context: list[dict[str, str]], instructions
         else latest_message
     )
 
-    # The user's JWT is forwarded so every MCP tool call runs with the patient's own permissions.
+    # The user's JWT is forwarded so every MCP tool call runs with that user's own permissions,
+    # and the agent only sees the tools of its role.
     mcp_server = MCPServerSse(
         params={
             "url": settings.MCP_SERVER_URL,
@@ -134,11 +196,12 @@ async def ai_runner(user_token: str, context: list[dict[str, str]], instructions
             "httpx_client_factory": _mcp_http_client,
         },
         client_session_timeout_seconds=30,
+        tool_filter=create_static_tool_filter(allowed_tool_names=allowed_tools),
     )
 
     async with mcp_server as server:
         agent = Agent(
-            name="SIRIUS Intake Assistant",
+            name=agent_name,
             model=AI_MODEL,
             instructions=instructions,
             mcp_servers=[server],

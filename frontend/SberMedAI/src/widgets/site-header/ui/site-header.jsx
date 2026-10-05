@@ -9,8 +9,8 @@ import { formatDateTime } from '@/shared/lib/format.js'
 
 const NAV = {
     patient: [['/', 'Главная'], ['/assistant', 'ИИ-ассистент'], ['/profile', 'Личный кабинет']],
-    doctor: [['/', 'Главная'], ['/doctor', 'Обращения пациентов']],
-    admin: [['/', 'Главная'], ['/admin', 'Администрирование']],
+    doctor: [['/', 'Главная'], ['/doctor', 'Обращения пациентов'], ['/doctor/assistant', 'ИИ-ассистент']],
+    admin: [['/', 'Главная'], ['/admin', 'Администрирование'], ['/admin/assistant', 'ИИ-ассистент']],
 }
 
 const caseLink = (role, caseId) => {

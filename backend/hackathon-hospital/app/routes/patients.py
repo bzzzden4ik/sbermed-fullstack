@@ -46,7 +46,7 @@ def register_patient(
     db.refresh(patient)
     return patient
 
-@router.get("", response_model=List[PatientResponse])
+@router.get("", response_model=List[PatientResponse], operation_id="list_patients")
 def get_patients(
     name: Optional[str] = None,
     skip: int = 0,

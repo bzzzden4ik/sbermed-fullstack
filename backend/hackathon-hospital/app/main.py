@@ -21,6 +21,7 @@ from app.config import settings
 from app.database import engine, Base
 from app.routes import auth, doctors, patients, appointments, prescriptions, records, reports, ai, cases, notifications
 from fastapi_mcp import FastApiMCP
+from app.utils.ai_runner import ALL_AGENT_TOOLS
 
 
 
@@ -78,11 +79,11 @@ def read_root():
 
 
 
-# Only the operations the intake agent needs are exposed as MCP tools. Each call is executed
+# Only the operations the role agents need are exposed as MCP tools (each agent is further limited to its own list). Each call is executed
 # against the FastAPI app with the patient's forwarded JWT, so normal role checks apply.
 mcp = FastApiMCP(
     app,
     name="SIRIUS Hospital MCP",
-    include_operations=["get_my_latest_case", "submit_patient_case", "list_my_cases"],
+    include_operations=ALL_AGENT_TOOLS,
 )
 mcp.mount_sse(mount_path="/mcp")

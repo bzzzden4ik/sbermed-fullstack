@@ -145,7 +145,7 @@ def list_specializations(db: Session = Depends(get_db)):
     return available_specializations(db)
 
 
-@router.get("/{id}", response_model=PatientCaseResponse)
+@router.get("/{id}", response_model=PatientCaseResponse, operation_id="get_case")
 def get_case(
     id: int,
     db: Session = Depends(get_db),

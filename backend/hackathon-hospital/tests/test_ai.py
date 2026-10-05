@@ -104,12 +104,6 @@ def test_conversation_lifecycle_is_authenticated_and_user_scoped(client, make_pa
     assert len(fake_ai) == 2
 
 
-def test_assistant_is_patient_only(client, admin_headers, fake_ai):
-    response = client.post("/conversations", json={"message": "Привет"}, headers=admin_headers)
-    assert response.status_code == 403
-    assert fake_ai == []
-
-
 def test_failed_ai_reply_does_not_leave_duplicate_messages(client, make_patient, monkeypatch):
     from app.routes import ai
 

@@ -208,7 +208,7 @@ def export_csv(
         headers={"Content-Disposition": "attachment; filename=appointments.csv"}
     )
 
-@router.get("", response_model=List[AppointmentResponse])
+@router.get("", response_model=List[AppointmentResponse], operation_id="list_appointments")
 def get_appointments(
     patient_name: Optional[str] = None,
     doctor_name: Optional[str] = None,

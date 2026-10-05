@@ -85,7 +85,7 @@ def create_doctor(
     db.refresh(new_doc)
     return new_doc
 
-@router.get("", response_model=List[DoctorResponse])
+@router.get("", response_model=List[DoctorResponse], operation_id="list_doctors")
 def get_doctors(
     specialization: Optional[str] = None,
     name: Optional[str] = None,

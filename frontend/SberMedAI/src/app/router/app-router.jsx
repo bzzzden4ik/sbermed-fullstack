@@ -34,10 +34,14 @@ export default function AppRouter() {
                 <Route element={<RoleRoute roles={["doctor"]} />}>
                     <Route path="/doctor" element={<DoctorDashboardPage/>}/>
                     <Route path="/doctor/cases/:caseId" element={<DoctorCasePage/>}/>
+                    <Route path="/doctor/assistant" element={<AssistantPage/>}/>
+                    <Route path="/doctor/assistant/:conversationId" element={<AssistantPage/>}/>
                 </Route>
 
                 <Route element={<RoleRoute roles={["admin"]} />}>
                     <Route path="/admin" element={<AdminPage/>}/>
+                    <Route path="/admin/assistant" element={<AssistantPage/>}/>
+                    <Route path="/admin/assistant/:conversationId" element={<AssistantPage/>}/>
                 </Route>
 
                 <Route path="/chat/*" element={<Navigate to="/assistant" replace/>}/>

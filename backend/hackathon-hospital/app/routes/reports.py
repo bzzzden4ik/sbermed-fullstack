@@ -12,7 +12,7 @@ router = APIRouter(prefix="/reports", tags=["Reports"])
 
 admin_only = RoleChecker(["admin"])
 
-@router.get("/dashboard", response_model=DashboardReport)
+@router.get("/dashboard", response_model=DashboardReport, operation_id="get_clinic_dashboard")
 def get_dashboard_report(
     db: Session = Depends(get_db),
     current_user: User = Depends(admin_only)
@@ -76,7 +76,7 @@ def get_dashboard_report(
         average_daily_appointments=avg_daily_appts
     )
 
-@router.get("/appointments", response_model=AppointmentsReport)
+@router.get("/appointments", response_model=AppointmentsReport, operation_id="get_appointments_report")
 def get_appointments_report(
     db: Session = Depends(get_db),
     current_user: User = Depends(admin_only)
@@ -98,7 +98,7 @@ def get_appointments_report(
         no_show=no_show
     )
 
-@router.get("/doctors", response_model=DoctorsReport)
+@router.get("/doctors", response_model=DoctorsReport, operation_id="get_doctors_workload")
 def get_doctors_report(
     db: Session = Depends(get_db),
     current_user: User = Depends(admin_only)

@@ -1,5 +1,6 @@
 import logging
-from datetime import datetime
+from dataclasses import dataclass
+from datetime import date, datetime
 from typing import Literal
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
@@ -11,14 +12,25 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.database import get_db
 from app.models import Conversation, Message, Patient, PatientCase, User
-from app.routes.auth import RoleChecker, bearer_scheme, get_current_user, get_patient_profile
+from app.routes.auth import RoleChecker, bearer_scheme, get_current_user, get_doctor_profile, get_patient_profile
 from app.routes.cases import COLLECTING_STATUSES, available_specializations, latest_submitted_case
-from app.utils.ai_runner import ai_runner, build_intake_instructions
+from app.utils.ai_runner import (
+    ADMIN_TOOLS, DOCTOR_TOOLS, PATIENT_TOOLS,
+    ai_runner, build_admin_instructions, build_doctor_instructions, build_intake_instructions,
+)
 
 router = APIRouter(tags=["AI"])
 logger = logging.getLogger(__name__)
 MAX_CONTEXT_MESSAGES = 20
-patient_only = RoleChecker(["patient"])
+# Every role has its own assistant; the role decides which agent answers.
+assistant_users = RoleChecker(["patient", "doctor", "admin"])
+
+
+@dataclass
+class AgentSetup:
+    name: str
+    instructions: str
+    tools: list[str]
 
 
 class CreateConversationRequest(BaseModel):
@@ -131,6 +143,39 @@ def build_instructions(
     )
 
 
+def agent_for(
+    db: Session,
+    user: User,
+    conversation_id: int,
+    patient: Patient | None = None,
+    case: PatientCase | None = None,
+    is_first_message: bool = False,
+) -> AgentSetup:
+    """Pick the assistant for the user's role: patient intake, doctor helper or admin analytics."""
+    today = date.today().isoformat()
+    if user.role == "patient":
+        return AgentSetup(
+            name="SIRIUS Patient Assistant",
+            instructions=build_instructions(db, conversation_id, patient, case, is_first_message),
+            tools=PATIENT_TOOLS,
+        )
+    if user.role == "doctor":
+        doctor = get_doctor_profile(db, user)
+        return AgentSetup(
+            name="SIRIUS Doctor Assistant",
+            instructions=build_doctor_instructions(
+                doctor_brief=f"{doctor.full_name}, {doctor.specialization}, {doctor.qualification} (doctor id {doctor.id})",
+                today=today,
+            ),
+            tools=DOCTOR_TOOLS,
+        )
+    return AgentSetup(
+        name="SIRIUS Admin Assistant",
+        instructions=build_admin_instructions(admin_brief=f"{user.full_name} ({user.email})", today=today),
+        tools=ADMIN_TOOLS,
+    )
+
+
 def describe_latest_case(db: Session, patient: Patient, current_case: PatientCase) -> str:
     """One-line pointer to the patient's earlier case, so its id survives between turns (tool results are not stored)."""
     latest = latest_submitted_case(db, patient.id)
@@ -179,13 +224,15 @@ async def create_assistant_message(
     conversation_id: int,
     context: list[Message],
     user_token: str,
-    instructions: str,
+    agent: AgentSetup,
 ) -> Message:
     try:
         response_text = await ai_runner(
             user_token=user_token,
             context=to_agent_messages(context),
-            instructions=instructions,
+            instructions=agent.instructions,
+            allowed_tools=agent.tools,
+            agent_name=agent.name,
         )
     except Exception as exc:
         logger.exception("AI conversation response generation failed.")
@@ -221,11 +268,14 @@ def ensure_case_accepts_messages(case: PatientCase) -> None:
 async def create_conversation(
     data: CreateConversationRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(patient_only),
+    current_user: User = Depends(assistant_users),
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
 ):
-    """Start a patient intake conversation (one conversation = one case) and return the first exchange."""
-    patient = get_patient_profile(db, current_user)
+    """Start a conversation with the assistant of the user's role and return the first exchange.
+    For patients one conversation is the intake of one case; doctor and admin conversations have no case."""
+    patient = get_patient_profile(db, current_user) if current_user.role == "patient" else None
+    if current_user.role == "doctor":
+        get_doctor_profile(db, current_user)  # fail early, before anything is stored
     user_token = get_request_token(credentials)
     conversation = Conversation(
         user_id=current_user.id,
@@ -242,7 +292,7 @@ async def create_conversation(
     db.add(user_message)
     db.commit()
     db.refresh(conversation)
-    case = ensure_conversation_case(db, conversation, patient, data.message)
+    case = ensure_conversation_case(db, conversation, patient, data.message) if patient else None
 
     context = get_last_context_messages(db, conversation.id)
     try:
@@ -251,21 +301,23 @@ async def create_conversation(
             conversation_id=conversation.id,
             context=context,
             user_token=user_token,
-            instructions=build_instructions(db, conversation.id, patient, case, is_first_message=True),
+            agent=agent_for(db, current_user, conversation.id, patient, case, is_first_message=True),
         )
     except HTTPException:
         # Do not leave a half-created conversation behind, so a retry does not duplicate it.
         db.rollback()
-        db.delete(case)
+        if case:
+            db.delete(case)
         db.delete(conversation)
         db.commit()
         raise
 
-    db.expire_all()  # the agent may have submitted the case through MCP in another session
-    case = get_conversation_case(db, conversation.id)
-    if case and case.status == "OPEN":
-        case.status = "AI_COLLECTING"
-        db.commit()
+    if case:
+        db.expire_all()  # the agent may have submitted the case through MCP in another session
+        case = get_conversation_case(db, conversation.id)
+        if case and case.status == "OPEN":
+            case.status = "AI_COLLECTING"
+            db.commit()
     return ConversationCreatedResponse(
         conversation=build_conversation_response(conversation, case)
     )
@@ -312,15 +364,19 @@ async def send_conversation_message(
     conversation_id: int,
     data: SendMessageRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(patient_only),
+    current_user: User = Depends(assistant_users),
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
 ):
-    """Append a patient message to an intake conversation and return the assistant's reply."""
+    """Append a message to an owned conversation and return the reply of the role's assistant."""
     conversation = get_owned_conversation(db, conversation_id, current_user.id)
-    patient = get_patient_profile(db, current_user)
     user_token = get_request_token(credentials)
-    case = ensure_conversation_case(db, conversation, patient, conversation.title or data.content)
-    ensure_case_accepts_messages(case)
+    patient = case = None
+    if current_user.role == "patient":
+        patient = get_patient_profile(db, current_user)
+        case = ensure_conversation_case(db, conversation, patient, conversation.title or data.content)
+        ensure_case_accepts_messages(case)
+    elif current_user.role == "doctor":
+        get_doctor_profile(db, current_user)  # fail early, before the message is stored
 
     user_message = Message(
         conversation_id=conversation.id,
@@ -338,20 +394,21 @@ async def send_conversation_message(
             conversation_id=conversation.id,
             context=context,
             user_token=user_token,
-            instructions=build_instructions(db, conversation.id, patient, case, is_first_message=len(context) == 1),
+            agent=agent_for(db, current_user, conversation.id, patient, case, is_first_message=len(context) == 1),
         )
     except HTTPException:
-        # Drop the unanswered message so the patient can resend it without duplicates.
+        # Drop the unanswered message so the user can resend it without duplicates.
         db.rollback()
         db.delete(user_message)
         db.commit()
         raise
 
-    db.expire_all()  # the agent may have submitted the case through MCP in another session
-    case = get_conversation_case(db, conversation.id)
-    if case and case.status == "OPEN":
-        case.status = "AI_COLLECTING"
-        db.commit()
+    if case:
+        db.expire_all()  # the agent may have submitted the case through MCP in another session
+        case = get_conversation_case(db, conversation.id)
+        if case and case.status == "OPEN":
+            case.status = "AI_COLLECTING"
+            db.commit()
     return ConversationMessageCreatedResponse(
         conversation_id=conversation.id,
         case_id=case.id if case else None,

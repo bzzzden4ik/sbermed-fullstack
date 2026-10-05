@@ -10,8 +10,43 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
     <title>SIRIUS — университетская клиника нового поколения</title>
+    <!-- Splash screen: inline so it paints before the JS bundle downloads. Hidden by src/app/splash.js. -->
+    <style>
+      #splash { position: fixed; inset: 0; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; background: #FAF8F4; transition: opacity .5s ease, visibility .5s ease; }
+      #splash.sp-hide { opacity: 0; visibility: hidden; pointer-events: none; }
+      #splash .sp-ring { position: absolute; width: min(70vw, 520px); aspect-ratio: 1; border-radius: 50%; border: 1px solid rgba(15, 91, 104, .18); box-shadow: 0 0 0 60px rgba(15, 91, 104, .035), 0 0 0 120px rgba(15, 91, 104, .02); animation: sp-ring 3.2s ease-in-out infinite; }
+      #splash .sp-name { position: relative; font: 400 clamp(64px, 16vw, 168px)/.9 "Instrument Serif", "Times New Roman", serif; letter-spacing: .02em; background: linear-gradient(100deg, #1C2227 20%, #0F5B68 60%, #2A8796 80%, #1C2227); background-size: 220% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; animation: sp-in .9s cubic-bezier(.2, .7, .2, 1) both, sp-shine 3.4s ease-in-out .9s infinite; }
+      #splash .sp-star { position: absolute; right: -.1em; top: -.08em; width: .22em; height: .22em; filter: drop-shadow(0 0 14px rgba(42, 135, 150, .7)); animation: sp-tw 2.4s ease-in-out infinite; }
+      #splash .sp-ecg { width: min(76vw, 460px); height: 44px; stroke-dasharray: 1400; stroke-dashoffset: 1400; animation: sp-draw 2.8s cubic-bezier(.4, 0, .2, 1) .3s infinite; }
+      #splash .sp-ecg path { vector-effect: non-scaling-stroke; }
+      #splash .sp-cap { font: 500 12px "Inter", system-ui, sans-serif; letter-spacing: .3em; text-transform: uppercase; color: #6A7279; animation: sp-in 1s .25s cubic-bezier(.2, .7, .2, 1) both; }
+      @keyframes sp-in { from { opacity: 0; transform: translateY(14px); } }
+      @keyframes sp-shine { 0%, 100% { background-position: 100% 0; } 50% { background-position: 0 0; } }
+      @keyframes sp-tw { 50% { transform: scale(.55) rotate(45deg); opacity: .6; } }
+      @keyframes sp-draw { 0% { stroke-dashoffset: 1400; opacity: 1; } 55% { stroke-dashoffset: 0; } 85% { stroke-dashoffset: 0; opacity: 1; } 100% { stroke-dashoffset: 0; opacity: 0; } }
+      @keyframes sp-ring { 50% { transform: scale(1.06); opacity: .7; } }
+      @media (max-width: 480px) { #splash .sp-cap { letter-spacing: .18em; font-size: 11px; } }
+      @media (prefers-reduced-motion: reduce) {
+        #splash *, #splash { animation: none !important; transition: none !important; }
+        #splash .sp-ecg { stroke-dashoffset: 0; }
+      }
+    </style>
   </head>
   <body>
+    <div id="splash" role="status" aria-label="Загрузка SIRIUS">
+      <div class="sp-ring" aria-hidden="true"></div>
+      <div class="sp-name" aria-hidden="true">SIRIUS<svg class="sp-star" viewBox="0 0 24 24"><path d="M12 0c.8 7.2 4.8 11.2 12 12-7.2.8-11.2 4.8-12 12-.8-7.2-4.8-11.2-12-12C7.2 11.2 11.2 7.2 12 0z" fill="#0F5B68"/></svg></div>
+      <svg class="sp-ecg" viewBox="0 0 1000 60" preserveAspectRatio="none" aria-hidden="true"><path d="M0 30h330l20-8 18 8h40l14-26 20 52 18-26h40l16-8 16 8h470" fill="none" stroke="#0F5B68" stroke-width="1.5" stroke-linecap="round"/></svg>
+      <div class="sp-cap">Университетская клиника</div>
+    </div>
+    <script>
+      // Start time for the minimum display; hard limit so the splash never blocks the site.
+      window.__splashStart = performance.now();
+      setTimeout(function () {
+        var el = document.getElementById('splash');
+        if (el) { el.classList.add('sp-hide'); setTimeout(function () { el.remove(); }, 600); }
+      }, 8000);
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

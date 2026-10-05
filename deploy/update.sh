@@ -24,7 +24,10 @@ systemctl restart sirius-backend
 nginx -t && systemctl reload nginx
 # The backend needs a few seconds to import its dependencies.
 for i in $(seq 1 30); do
-    if curl -fsS http://127.0.0.1/api/ >/dev/null 2>&1; then echo "==> OK: SIRIUS is up"; exit 0; fi
+    # Backend directly (port 80 only redirects to HTTPS), then the public site through Nginx.
+    if curl -fsS http://127.0.0.1:8000/ >/dev/null 2>&1 && curl -fsS -o /dev/null https://sirius.data-cdn.top/api/; then
+        echo "==> OK: SIRIUS is up at https://sirius.data-cdn.top"; exit 0
+    fi
     sleep 1
 done
 echo "==> Backend did not answer within 30 s"

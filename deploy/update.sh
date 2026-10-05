@@ -22,5 +22,11 @@ cp "$APP/deploy/nginx-sirius.conf" /etc/nginx/sites-available/sirius
 systemctl daemon-reload
 systemctl restart sirius-backend
 nginx -t && systemctl reload nginx
-sleep 2
-curl -fsS http://127.0.0.1/api/ >/dev/null && echo "==> OK: SIRIUS is up" || { echo "==> Backend did not answer"; journalctl -u sirius-backend -n 30 --no-pager; exit 1; }
+# The backend needs a few seconds to import its dependencies.
+for i in $(seq 1 30); do
+    if curl -fsS http://127.0.0.1/api/ >/dev/null 2>&1; then echo "==> OK: SIRIUS is up"; exit 0; fi
+    sleep 1
+done
+echo "==> Backend did not answer within 30 s"
+journalctl -u sirius-backend -n 30 --no-pager
+exit 1

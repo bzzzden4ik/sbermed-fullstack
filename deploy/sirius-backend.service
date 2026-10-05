@@ -18,8 +18,8 @@ ExecStart=/opt/sirius/venv/bin/gunicorn app.main:app \
     --timeout 120 \
     --graceful-timeout 60 \
     --keep-alive 5 \
-    --max-requests 2000 \
-    --max-requests-jitter 200 \
+    --max-requests 10000 \
+    --max-requests-jitter 1000 \
     --forwarded-allow-ips 127.0.0.1 \
     --access-logfile - \
     --error-logfile -

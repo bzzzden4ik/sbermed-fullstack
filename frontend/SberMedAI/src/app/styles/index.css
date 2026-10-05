@@ -7,19 +7,8 @@
   --bad: #C8372D; --badbg: #FBE9E7; --ok: #1B7A5A; --okbg: #E3F3EC; --warn: #9A6B00; --warnbg: #FBF1D9; --rec: #E5484D;
   --hdr: rgba(250, 248, 244, .82);
   --w: 1240px; --edge: 24px;
+  /* Light theme only, on every page, regardless of the operating system's dark mode. */
   color-scheme: light;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --ink: #EDEBE6; --ink2: #9AA3A9; --line: #2D353B; --bg: #12171A; --bg2: #181F23; --card: #1D252A; --acc: #5CB8C6;
-    --tint: #1B2D31; --ph: #222B30; --ph2: #3A454C; --badbg: #3A1F1C; --okbg: #17302A; --ok: #6ED0A8; --bad: #F08A80;
-    --warnbg: #352B14; --warn: #E8C26A; --hdr: rgba(18, 23, 26, .82); color-scheme: dark;
-  }
-}
-:root[data-theme="dark"] {
-  --ink: #EDEBE6; --ink2: #9AA3A9; --line: #2D353B; --bg: #12171A; --bg2: #181F23; --card: #1D252A; --acc: #5CB8C6;
-  --tint: #1B2D31; --ph: #222B30; --ph2: #3A454C; --badbg: #3A1F1C; --okbg: #17302A; --ok: #6ED0A8; --bad: #F08A80;
-  --warnbg: #352B14; --warn: #E8C26A; --hdr: rgba(18, 23, 26, .82); color-scheme: dark;
 }
 
 html { scroll-behavior: smooth; scroll-padding-top: calc(84px + env(safe-area-inset-top, 0px)); }

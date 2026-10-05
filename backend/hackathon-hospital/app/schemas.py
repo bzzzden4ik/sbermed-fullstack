@@ -103,6 +103,7 @@ class PatientResponse(BaseModel):
     address: str
     blood_group: str
     emergency_contact: str
+    has_photo: bool = False
     created_at: datetime.datetime
 
     class Config:

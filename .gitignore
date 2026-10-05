@@ -2,6 +2,7 @@
 .env
 *.sqlite3
 uploads/
+private_uploads/
 
 # Python
 myenv/

@@ -5,13 +5,14 @@ import { listCases, CaseSummary, AiDisclaimer } from '@/entities/case'
 import { listAppointments, updateAppointment } from '@/entities/appointment/api/appointment-api.js'
 import { PatientProfileForm } from '@/features/patient-profile-form'
 import { BookAppointmentForm } from '@/features/book-appointment'
+import { PatientPhotoEditor } from '@/features/patient-photo'
 import { SiteHeader } from '@/widgets/site-header'
 import { Loader, Modal, SiteFooter, StatusChip } from '@/shared/ui/common.jsx'
 import { ArrowRightIcon, OrbitBackground } from '@/shared/ui/icons.jsx'
 import { useToast } from '@/shared/ui/toast-context.js'
 import { getErrorMessage } from '@/shared/api/axios-client.js'
 import { APPOINTMENT_STATUS, CASE_DECISION, CASE_STATUS, URGENCY } from '@/shared/lib/labels.js'
-import { formatDate, formatGender, initials, pluralYears } from '@/shared/lib/format.js'
+import { formatDate, formatGender, pluralYears } from '@/shared/lib/format.js'
 import './cabinet.css'
 
 const ChevronDown = () => (
@@ -140,7 +141,7 @@ export function ProfilePage() {
                     <div className="wrap">
                         <div className="crumbs"><span>Личный кабинет</span><span>/</span><b>Профиль</b></div>
                         <div className="who">
-                            <div className="ava" aria-hidden="true">{initials(profile.full_name)}</div>
+                            <PatientPhotoEditor />
                             <div>
                                 <h1>{profile.full_name}</h1>
                                 <div className="sub"><span className="chip">Пациент</span><span>{user.email}</span><span>{profile.phone_number}</span></div>

@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     UPLOAD_DIR: str = "uploads"
+    PRIVATE_UPLOAD_DIR: str = "private_uploads"  # not served publicly; files are returned by authorized endpoints
     SMTP_HOST: str = "smtp.mail.ru"
     SMTP_PORT: int = 465
     SMTP_USERNAME: str = ""

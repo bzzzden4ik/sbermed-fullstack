@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useSession } from '@/entities/session'
 import { getCase, startCaseReview, CaseSummary, AiDisclaimer } from '@/entities/case'
+import { usePatientPhoto } from '@/entities/patient/model/use-patient-photo.js'
 import { CaseDecisionForm } from '@/features/case-decision'
 import { SiteHeader } from '@/widgets/site-header'
 import { Loader, SiteFooter, StatusChip } from '@/shared/ui/common.jsx'
@@ -9,7 +10,7 @@ import { OrbitBackground } from '@/shared/ui/icons.jsx'
 import { useToast } from '@/shared/ui/toast-context.js'
 import { getErrorMessage } from '@/shared/api/axios-client.js'
 import { CASE_DECISION, CASE_STATUS, URGENCY } from '@/shared/lib/labels.js'
-import { formatDateTime, formatGender, pluralYears } from '@/shared/lib/format.js'
+import { formatDateTime, formatGender, initials, pluralYears } from '@/shared/lib/format.js'
 import '../../profile/ui/cabinet.css'
 
 const DECIDABLE = ['READY_FOR_DOCTOR', 'REFERRED', 'UNDER_REVIEW']
@@ -49,6 +50,7 @@ export function DoctorCasePage() {
     const isAssigned = item && profile && item.doctor?.id === profile.id
     const canDecide = isAssigned && DECIDABLE.includes(item.status)
     const patient = item?.patient
+    const patientPhoto = usePatientPhoto(patient?.id, patient?.has_photo)
 
     return (
         <div className="page p-cabinet">
@@ -94,6 +96,9 @@ export function DoctorCasePage() {
                         <section className="s bg2">
                             <div className="wrap split">
                                 <div className="sticky">
+                                    <div className="ava" style={{ width: 96, fontSize: 36, marginBottom: 24 }} aria-hidden={!patientPhoto}>
+                                        {patientPhoto ? <img src={patientPhoto} alt={`Фото: ${patient.full_name}`} /> : initials(patient.full_name)}
+                                    </div>
                                     <h2>Пациент</h2>
                                     <p>{patient.full_name}, {pluralYears(patient.age)}. Данные из профиля пациента.</p>
                                 </div>

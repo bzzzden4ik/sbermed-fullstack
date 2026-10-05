@@ -9,6 +9,7 @@ from app.models import Appointment, Doctor, PatientCase, Prescription, User
 from app.schemas import DoctorCreate, DoctorResponse, DoctorUpdate
 from app.routes.auth import RoleChecker, get_current_user
 from app.security import get_password_hash
+from app.utils.images import read_validated_photo
 
 router = APIRouter(prefix="/doctors", tags=["Doctors"])
 
@@ -16,21 +17,6 @@ router = APIRouter(prefix="/doctors", tags=["Doctors"])
 admin_only = RoleChecker(["admin"])
 
 PHOTO_DIR = os.path.join(settings.UPLOAD_DIR, "doctors")
-MAX_PHOTO_BYTES = 5 * 1024 * 1024
-# Detect the real image type from the file signature, so a script or HTML file cannot be stored as a "photo".
-PHOTO_SIGNATURES = {
-    b"\xff\xd8\xff": ".jpg",
-    b"\x89PNG\r\n\x1a\n": ".png",
-}
-
-
-def detect_photo_extension(content: bytes) -> Optional[str]:
-    for signature, ext in PHOTO_SIGNATURES.items():
-        if content.startswith(signature):
-            return ext
-    if content[:4] == b"RIFF" and content[8:12] == b"WEBP":
-        return ".webp"
-    return None
 
 
 def remove_photo_file(photo_url: Optional[str]) -> None:
@@ -211,12 +197,7 @@ def upload_doctor_photo(
     if not doctor:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Doctor not found")
 
-    content = file.file.read(MAX_PHOTO_BYTES + 1)
-    if len(content) > MAX_PHOTO_BYTES:
-        raise HTTPException(status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, detail="Photo must be at most 5 MB")
-    ext = detect_photo_extension(content)
-    if not ext:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported image. Upload a JPEG, PNG or WebP photo")
+    content, ext = read_validated_photo(file)
 
     os.makedirs(PHOTO_DIR, exist_ok=True)
     filename = f"{uuid.uuid4()}{ext}"

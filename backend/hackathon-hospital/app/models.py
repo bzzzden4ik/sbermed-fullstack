@@ -56,9 +56,14 @@ class Patient(Base):
     address: Mapped[str] = mapped_column(String(500))
     blood_group: Mapped[str] = mapped_column(String(20))
     emergency_contact: Mapped[str] = mapped_column(String(100))
+    photo_filename: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)  # stored in PRIVATE_UPLOAD_DIR/patients
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), default=_utc_now)
 
     user: Mapped[Optional["User"]] = relationship(back_populates="patient_profile")
+
+    @property
+    def has_photo(self) -> bool:
+        return bool(self.photo_filename)
     appointments: Mapped[List["Appointment"]] = relationship(back_populates="patient", cascade="all, delete")
     prescriptions: Mapped[List["Prescription"]] = relationship(back_populates="patient", cascade="all, delete")
     medical_records: Mapped[List["MedicalRecord"]] = relationship(back_populates="patient", cascade="all, delete")

@@ -70,3 +70,57 @@ def test_patient_crud(client, admin_headers):
         "password": "patientpassword123"
     }).json()["access_token"]
     assert client.get(f"/patients/{other_patient['id']}", headers={"Authorization": f"Bearer {other_token}"}).status_code == 200
+
+
+PNG_BYTES = b"\x89PNG\r\n\x1a\n" + b"\x00" * 64
+JPEG_BYTES = b"\xff\xd8\xff\xe0" + b"\x00" * 64
+
+
+def test_patient_profile_photo_is_private(client, admin_headers, make_patient, tmp_path, monkeypatch):
+    from app.routes import patients
+    from tests.conftest import register_and_login
+
+    monkeypatch.setattr(patients, "PATIENT_PHOTO_DIR", str(tmp_path))
+    headers, profile = make_patient("photo-patient@clinic.com", "9000000090")
+    other_headers, _ = make_patient("photo-other@clinic.com", "9000000091")
+    doctor_headers = register_and_login(client, "photo-doc@clinic.com", "doctor", "Dr Viewer")
+    url = f"/patients/{profile['id']}/photo"
+    assert profile["has_photo"] is False
+    assert client.get(url, headers=headers).status_code == 404
+
+    # The patient uploads their own photo; the profile only says that a photo exists.
+    uploaded = client.post(url, files={"file": ("me.png", PNG_BYTES, "image/png")}, headers=headers)
+    assert uploaded.status_code == 200
+    assert uploaded.json()["has_photo"] is True
+    assert "photo_filename" not in uploaded.json()
+    stored = list(tmp_path.iterdir())
+    assert len(stored) == 1 and stored[0].read_bytes() == PNG_BYTES
+
+    # Owner, doctors and admins can view it; other patients and anonymous users cannot.
+    own = client.get(url, headers=headers)
+    assert own.status_code == 200 and own.content == PNG_BYTES and own.headers["content-type"] == "image/png"
+    assert "no-store" in own.headers["cache-control"]
+    assert client.get(url, headers=doctor_headers).status_code == 200
+    assert client.get(url, headers=admin_headers).status_code == 200
+    assert client.get(url, headers=other_headers).status_code == 403
+    assert client.get(url).status_code == 401
+    # Not reachable through the public static folder.
+    assert client.get(f"/uploads/patients/{stored[0].name}").status_code == 404
+
+    # Only the owner and admins can change it; doctors and other patients cannot.
+    assert client.post(url, files={"file": ("x.png", PNG_BYTES, "image/png")}, headers=other_headers).status_code == 403
+    assert client.post(url, files={"file": ("x.png", PNG_BYTES, "image/png")}, headers=doctor_headers).status_code == 403
+    assert client.delete(url, headers=other_headers).status_code == 403
+    assert client.post(url, files={"file": ("x.png", b"<html>not an image</html>", "image/png")}, headers=headers).status_code == 400
+
+    # Replacing removes the old file; an admin may replace it too.
+    replaced = client.post(url, files={"file": ("me.jpg", JPEG_BYTES, "image/jpeg")}, headers=admin_headers)
+    assert replaced.status_code == 200
+    files = list(tmp_path.iterdir())
+    assert len(files) == 1 and files[0].suffix == ".jpg"
+    assert client.get(url, headers=headers).headers["content-type"] == "image/jpeg"
+
+    removed = client.delete(url, headers=headers)
+    assert removed.status_code == 200 and removed.json()["has_photo"] is False
+    assert list(tmp_path.iterdir()) == []
+    assert client.get(url, headers=headers).status_code == 404

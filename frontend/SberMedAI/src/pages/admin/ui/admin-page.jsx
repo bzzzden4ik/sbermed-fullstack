@@ -12,6 +12,7 @@ import { useToast } from '@/shared/ui/toast-context.js'
 import { getErrorMessage, mediaUrl } from '@/shared/api/axios-client.js'
 import { APPOINTMENT_STATUS, CASE_DECISION, CASE_STATUS, URGENCY } from '@/shared/lib/labels.js'
 import { formatDate, formatDateTime, formatGender, initials } from '@/shared/lib/format.js'
+import { MAX_PHOTO_MB, PHOTO_TYPES, validatePhoto } from '@/shared/lib/photo.js'
 import '../../profile/ui/cabinet.css'
 import './admin.css'
 
@@ -62,8 +63,6 @@ const Overview = () => {
 
 const EMPTY_DOCTOR = { full_name: '', specialization: '', qualification: '', phone_number: '', email: '', consultation_fee: '', available_timings: 'Mon-Fri 09:00-17:00' }
 
-const PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp']
-const MAX_PHOTO_MB = 5
 
 const DoctorAvatar = ({ doctor, src, size = 44 }) => {
     const url = src === undefined ? mediaUrl(doctor?.photo_url) : src
@@ -102,8 +101,8 @@ const DoctorForm = ({ initial, onSaved }) => {
         const file = e.target.files?.[0]
         e.target.value = ''
         if (!file) return
-        if (!PHOTO_TYPES.includes(file.type)) { setError('Фото должно быть в формате JPEG, PNG или WebP'); return }
-        if (file.size > MAX_PHOTO_MB * 1024 * 1024) { setError(`Фото должно быть не больше ${MAX_PHOTO_MB} МБ`); return }
+        const problem = validatePhoto(file)
+        if (problem) { setError(problem); return }
         setError('')
         setRemovePhoto(false)
         setPhotoFile(file)

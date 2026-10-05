@@ -9,8 +9,8 @@ User=sirius
 Group=sirius
 WorkingDirectory=/opt/sirius/app/backend/hackathon-hospital
 EnvironmentFile=/etc/sirius/backend.env
-# One worker: MCP SSE sessions live in process memory. Served under /api behind Nginx.
-ExecStart=/opt/sirius/venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 --root-path /api --proxy-headers --forwarded-allow-ips 127.0.0.1
+# One worker: MCP SSE sessions live in process memory. Nginx serves it under /api and strips the prefix.
+ExecStart=/opt/sirius/venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 --proxy-headers --forwarded-allow-ips 127.0.0.1
 Restart=always
 RestartSec=3
 NoNewPrivileges=true

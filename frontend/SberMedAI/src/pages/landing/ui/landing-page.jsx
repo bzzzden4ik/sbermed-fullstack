@@ -160,7 +160,7 @@ export const LandingPage = () => {
                                 {visibleDoctors.map((doctor) => (
                                     <article className="doc rv" key={doctor.id}>
                                         <div className="ph" role="img" aria-label={`Врач ${doctor.full_name}`}>
-                                            <span className="mono">{initials(doctor.full_name)}</span>
+                                            
                                             {doctor.photo_url && (
                                                 <img src={mediaUrl(doctor.photo_url)} alt={doctor.full_name} loading="lazy"
                                                     style={{ objectPosition: 'center 20%' }} onLoad={markLoaded} onError={dropImage} />

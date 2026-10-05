@@ -4,7 +4,8 @@ def test_reports_dashboard_access_and_metrics(client, admin_headers):
         "email": "patient@clinic.com",
         "password": "patientpassword123",
         "full_name": "Clinic Patient",
-        "role": "patient"
+        "role": "patient",
+        "accept_terms": True
     })
     patient_login = client.post("/auth/login", json={
         "email": "patient@clinic.com",

@@ -4,13 +4,18 @@ export const loginRequest = (email, password) =>
     api.post('/auth/login', { email, password }).then((r) => r.data)
 
 export const registerRequest = (email, password, full_name) =>
-    api.post('/auth/register', { email, password, full_name, role: 'patient' }).then((r) => r.data)
+    api.post('/auth/register', { email, password, full_name, role: 'patient', accept_terms: true }).then((r) => r.data)
+
+/** Records consent to the current user agreement, privacy policy and data-processing consent. */
+export const acceptTermsRequest = () => api.post('/auth/accept-terms', { accept_terms: true }).then((r) => r.data)
 
 export const fetchMe = () => api.get('/auth/me').then((r) => r.data)
 
 /** Role-specific profile: the patient's own card or the doctor's record; admins have none. */
 export const fetchRoleProfile = async (user) => {
     if (user.role === 'patient') {
+        // The backend refuses patient data until the current documents are accepted (consent screen first).
+        if (user.needs_consent) return null
         try {
             const patients = await api.get('/patients').then((r) => r.data)
             return patients[0] || null

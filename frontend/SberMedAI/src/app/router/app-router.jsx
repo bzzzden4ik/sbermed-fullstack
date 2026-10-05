@@ -4,6 +4,8 @@ import { ProfilePage } from "@/pages/profile";
 import { AssistantPage } from "@/pages/assistant";
 import { AuthPage } from "@/pages/auth";
 import { OnboardingPage } from "@/pages/onboarding";
+import { ConsentPage } from "@/pages/consent";
+import { LegalPage } from "@/pages/legal";
 import { DoctorDashboardPage, DoctorCasePage } from "@/pages/doctor";
 import { AdminPage } from "@/pages/admin";
 import { NotFound } from "@/pages/not-found"
@@ -16,9 +18,15 @@ export default function AppRouter() {
             <Routes>
                 <Route path="/" element={<LandingPage/>}/>
                 <Route path="/cabinet" element={<CabinetRedirect/>}/>
+                <Route path="/legal" element={<Navigate to="/legal/terms" replace/>}/>
+                <Route path="/legal/:doc" element={<LegalPage/>}/>
 
                 <Route element={<PublicOnlyRoute />}>
                     <Route path="/auth" element={<AuthPage/>}/>
+                </Route>
+
+                <Route element={<RoleRoute roles={["patient"]} allowMissingProfile allowMissingConsent />}>
+                    <Route path="/consent" element={<ConsentPage/>}/>
                 </Route>
 
                 <Route element={<RoleRoute roles={["patient"]} allowMissingProfile />}>

@@ -8,6 +8,14 @@ class UserRegister(BaseModel):
     password: str = Field(..., min_length=6)
     full_name: str = Field(..., min_length=2)
     role: str = Field(..., description="doctor or patient")
+    accept_terms: bool = Field(..., description="Must be true: user agreement, privacy policy and personal/health data processing consent")
+
+    @field_validator("accept_terms")
+    @classmethod
+    def validate_accept_terms(cls, v: bool) -> bool:
+        if not v:
+            raise ValueError("You must accept the user agreement and consent to personal data processing")
+        return v
 
     @field_validator("role")
     @classmethod
@@ -26,9 +34,22 @@ class UserResponse(BaseModel):
     full_name: str
     role: str
     created_at: datetime.datetime
+    terms_accepted_at: Optional[datetime.datetime] = None
+    terms_version: Optional[str] = None
+    needs_consent: bool = False
 
     class Config:
         from_attributes = True
+
+class AcceptTerms(BaseModel):
+    accept_terms: bool
+
+    @field_validator("accept_terms")
+    @classmethod
+    def validate_accept_terms(cls, v: bool) -> bool:
+        if not v:
+            raise ValueError("You must accept the user agreement and consent to personal data processing")
+        return v
 
 class Token(BaseModel):
     access_token: str

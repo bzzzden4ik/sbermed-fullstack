@@ -3,6 +3,7 @@ from time import timezone
 from typing import List, Optional
 from sqlalchemy import String, Integer, Float, Date, DateTime, ForeignKey, JSON, Text, Boolean
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from app.config import settings
 from app.database import Base
 
 def _utc_now() -> datetime.datetime:
@@ -17,6 +18,9 @@ class User(Base):
     full_name: Mapped[str] = mapped_column(String(255))
     role: Mapped[str] = mapped_column(String(50))  # admin, doctor, patient
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), default=_utc_now)
+    # Proof of consent to the user agreement, privacy policy and personal/health data processing (152-ФЗ).
+    terms_accepted_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    terms_version: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
 
     doctor_profile: Mapped[Optional["Doctor"]] = relationship(back_populates="user", cascade="all, delete-orphan")
     patient_profile: Mapped[Optional["Patient"]] = relationship(back_populates="user")
@@ -25,6 +29,11 @@ class User(Base):
     cascade="all, delete-orphan",
 )
     notifications: Mapped[List["Notification"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+
+    @property
+    def needs_consent(self) -> bool:
+        """Patients must accept the current version of the legal documents before using the platform."""
+        return self.role == "patient" and self.terms_version != settings.LEGAL_DOCS_VERSION
 
 class Doctor(Base):
     __tablename__ = "doctors"

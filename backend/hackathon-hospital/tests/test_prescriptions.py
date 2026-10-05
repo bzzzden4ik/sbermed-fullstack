@@ -6,7 +6,8 @@ def test_prescription_flow(client, admin_headers):
         "email": "doctor_jones@clinic.com",
         "password": "doctorpassword123",
         "full_name": "Dr. Jones",
-        "role": "doctor"
+        "role": "doctor",
+        "accept_terms": True
     })
     doc_login = client.post("/auth/login", json={
         "email": "doctor_jones@clinic.com",
@@ -65,7 +66,8 @@ def test_prescription_flow(client, admin_headers):
         "email": "alice@clinic.com",
         "password": "patientpassword123",
         "full_name": "Alice Cooper",
-        "role": "patient"
+        "role": "patient",
+        "accept_terms": True
     }).json()
     link_resp = client.put(
         f"/patients/{patient_id}",

@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.database import get_db
 from app.models import Conversation, Message, Patient, PatientCase, User
-from app.routes.auth import RoleChecker, bearer_scheme, get_current_user, get_doctor_profile, get_patient_profile
+from app.routes.auth import RoleChecker, bearer_scheme, get_current_user, get_doctor_profile, get_patient_profile, require_consent
 from app.routes.cases import COLLECTING_STATUSES, available_specializations, latest_submitted_case
 from app.utils.ai_runner import (
     ADMIN_TOOLS, DOCTOR_TOOLS, PATIENT_TOOLS,
@@ -443,6 +443,7 @@ async def convert_audio_to_text(
     current_user: User = Depends(get_current_user),
 ):
     """Transcribe an uploaded audio file in Russian using OpenAI Whisper."""
+    require_consent(current_user)  # the recording is sent to OpenAI
     if not settings.OPENAI_API_KEY:
         await file.close()
         raise HTTPException(

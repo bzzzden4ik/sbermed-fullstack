@@ -159,3 +159,4 @@ section.s { padding: clamp(48px, 7vw, 96px) 0; border-top: 1px solid var(--line)
 }
 .ntf b, .ntf p { overflow-wrap: anywhere; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; } }
+.site-footer .sf-links { text-align: right; } .site-footer .sf-links a:hover { color: var(--acc); }

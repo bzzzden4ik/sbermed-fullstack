@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { useSession, homePathFor } from '@/entities/session'
 import { getErrorMessage } from '@/shared/api/axios-client.js'
 import { useToast } from '@/shared/ui/toast-context.js'
+import { ConsentCheckbox } from '@/features/legal-consent'
 
 export function AuthForm() {
     const [mode, setMode] = useState('login')
@@ -11,6 +12,7 @@ export function AuthForm() {
     const [fullName, setFullName] = useState('')
     const [error, setError] = useState('')
     const [pending, setPending] = useState(false)
+    const [accepted, setAccepted] = useState(false)
 
     const navigate = useNavigate()
     const location = useLocation()
@@ -26,6 +28,10 @@ export function AuthForm() {
     const handleSubmit = async (e) => {
         e.preventDefault()
         if (pending) return
+        if (!isLogin && !accepted) {
+            setError('Чтобы зарегистрироваться, примите пользовательское соглашение и дайте согласие на обработку данных')
+            return
+        }
         setError('')
         setPending(true)
         try {
@@ -80,7 +86,8 @@ export function AuthForm() {
                     autoComplete={isLogin ? 'current-password' : 'new-password'}
                     placeholder={isLogin ? 'Ваш пароль' : 'Не менее 6 символов'} value={password} onChange={(e) => setPassword(e.target.value)} />
             </div>
-            <button type="submit" className="btn" disabled={pending} style={{ width: '100%', marginTop: 8 }}>
+            {!isLogin && <ConsentCheckbox checked={accepted} onChange={setAccepted} id="auth-consent" />}
+            <button type="submit" className="btn" disabled={pending || (!isLogin && !accepted)} style={{ width: '100%', marginTop: 14 }}>
                 {pending ? 'Подождите…' : isLogin ? 'Войти' : 'Зарегистрироваться'}
             </button>
             <div className="auth-or"><span>или</span></div>

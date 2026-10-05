@@ -72,6 +72,7 @@ def register_and_login(client, email, role, full_name="Test User", password="pas
         "password": password,
         "full_name": full_name,
         "role": role,
+        "accept_terms": True,
     })
     token = client.post("/auth/login", json={"email": email, "password": password}).json()["access_token"]
     return {"Authorization": f"Bearer {token}"}

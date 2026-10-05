@@ -4,7 +4,8 @@ def test_patient_crud(client, admin_headers):
         "email": "jane@clinic.com",
         "password": "patientpassword123",
         "full_name": "Jane Smith",
-        "role": "patient"
+        "role": "patient",
+        "accept_terms": True
     })
     login_resp = client.post("/auth/login", json={
         "email": "jane@clinic.com",
@@ -55,7 +56,8 @@ def test_patient_crud(client, admin_headers):
         "email": "other@clinic.com",
         "password": "patientpassword123",
         "full_name": "Other Patient",
-        "role": "patient"
+        "role": "patient",
+        "accept_terms": True
     }).json()
     link_resp = client.put(
         f"/patients/{other_patient['id']}",

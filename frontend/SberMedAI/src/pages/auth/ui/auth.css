@@ -18,3 +18,11 @@
   .gosuslugi:hover { background: #0D4CD3; color: #fff; box-shadow: none; }
   .gosuslugi .soon { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: .08em; padding: 2px 8px; border-radius: 99px; background: #E6EEFC; color: #0D4CD3; }
 }
+
+.p-auth {
+  .consent-docs { list-style: none; margin: 0 0 18px; padding: 0; border-top: 1px solid var(--line); }
+  .consent-docs li { border-bottom: 1px solid var(--line); }
+  .consent-docs a { display: flex; justify-content: space-between; align-items: center; padding: 13px 0; font-size: 15px; color: var(--ink); transition: color .2s, padding .3s; }
+  .consent-docs a::after { content: "↗"; color: var(--acc); }
+  .consent-docs a:hover { color: var(--acc); padding-left: 6px; }
+}

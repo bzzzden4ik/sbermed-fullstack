@@ -6,7 +6,8 @@ def test_register_patient(client):
         "email": "patient@clinic.com",
         "password": "patientpassword123",
         "full_name": "Clinic Patient",
-        "role": "patient"
+        "role": "patient",
+        "accept_terms": True
     }
     response = client.post("/auth/register", json=payload)
     assert response.status_code == 201
@@ -20,7 +21,8 @@ def test_register_doctor(client):
         "email": "doctor@clinic.com",
         "password": "doctorpassword123",
         "full_name": "Clinic Doctor",
-        "role": "doctor"
+        "role": "doctor",
+        "accept_terms": True
     })
     assert response.status_code == 201
     doctors = client.get("/doctors").json()
@@ -31,7 +33,8 @@ def test_register_existing_user(client):
         "email": "patient@clinic.com",
         "password": "patientpassword123",
         "full_name": "Clinic Patient",
-        "role": "patient"
+        "role": "patient",
+        "accept_terms": True
     }
     assert client.post("/auth/register", json=payload).status_code == 201
     response = client.post("/auth/register", json=payload)
@@ -43,7 +46,8 @@ def test_admin_registration_is_rejected(client):
         "email": "admin@clinic.com",
         "password": "adminpassword123",
         "full_name": "Clinic Admin",
-        "role": "admin"
+        "role": "admin",
+        "accept_terms": True
     })
     assert response.status_code == 422
     login_response = client.post("/auth/login", json={
@@ -57,7 +61,8 @@ def test_unsupported_role_is_not_supported(client):
         "email": "unsupported@clinic.com",
         "password": "password123",
         "full_name": "Unsupported User",
-        "role": "unsupported"
+        "role": "unsupported",
+        "accept_terms": True
     })
     assert response.status_code == 422
 
@@ -67,7 +72,8 @@ def test_login_success(client):
         "email": "patient@clinic.com",
         "password": "patientpassword123",
         "full_name": "Clinic Patient",
-        "role": "patient"
+        "role": "patient",
+        "accept_terms": True
     })
     
     # Login
@@ -85,7 +91,8 @@ def test_get_current_user_profile(client):
         "email": "patient@clinic.com",
         "password": "patientpassword123",
         "full_name": "Clinic Patient",
-        "role": "patient"
+        "role": "patient",
+        "accept_terms": True
     })
     login_response = client.post("/auth/login", json={
         "email": "patient@clinic.com",

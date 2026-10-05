@@ -52,7 +52,8 @@ def test_medical_records_upload_and_download(client, admin_headers):
         "email": "bob@clinic.com",
         "password": "patientpassword123",
         "full_name": "Bob Vance",
-        "role": "patient"
+        "role": "patient",
+        "accept_terms": True
     }).json()
     link_resp = client.put(
         f"/patients/{patient_id}",

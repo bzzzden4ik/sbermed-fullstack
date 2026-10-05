@@ -43,7 +43,10 @@ export const SiteFooter = () => (
     <footer className="site-footer">
         <div className="wrap">
             <p>Имеются противопоказания, необходима консультация специалиста. ИИ-ассистент собирает информацию для врача и не ставит диагнозов. © 2026 SIRIUS.</p>
-            <p>+7 915 163-07-01</p>
+            <p className="sf-links">
+                <Link to="/legal/terms">Соглашение</Link> · <Link to="/legal/privacy">Конфиденциальность</Link> · <Link to="/legal/consent">Согласие на обработку данных</Link>
+                <br />+7 915 163-07-01
+            </p>
         </div>
     </footer>
 )

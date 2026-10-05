@@ -18,7 +18,8 @@ def test_appointment_booking_and_double_booking(client, admin_headers):
         "email": "john@clinic.com",
         "password": "patientpassword123",
         "full_name": "John Connor",
-        "role": "patient"
+        "role": "patient",
+        "accept_terms": True
     })
     patient_login = client.post("/auth/login", json={
         "email": "john@clinic.com",

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { tokenStorage, AUTH_EXPIRED_EVENT } from '@/shared/api/axios-client.js';
-import { fetchMe, fetchRoleProfile, loginRequest, registerRequest } from '../api/session-api.js';
+import { acceptTermsRequest, fetchMe, fetchRoleProfile, loginRequest, registerRequest } from '../api/session-api.js';
 import { SessionContext } from './session-context.js';
 
 export const SessionProvider = ({ children }) => {
@@ -55,6 +55,14 @@ export const SessionProvider = ({ children }) => {
     return login(email, password);
   }, [login]);
 
+  const acceptTerms = useCallback(async () => {
+    const updated = await acceptTermsRequest();
+    const roleProfile = await fetchRoleProfile(updated);
+    setUser(updated);
+    setProfile(roleProfile);
+    return updated;
+  }, []);
+
   const logout = useCallback(() => {
     tokenStorage.clear();
     setUser(null);
@@ -79,7 +87,8 @@ export const SessionProvider = ({ children }) => {
     logout,
     refreshProfile,
     setProfile,
-  }), [user, profile, isLoading, login, register, logout, refreshProfile]);
+    acceptTerms,
+  }), [user, profile, isLoading, login, register, logout, refreshProfile, acceptTerms]);
 
   return (
     <SessionContext.Provider value={value}>

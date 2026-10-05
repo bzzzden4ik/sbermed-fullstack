@@ -2,10 +2,11 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 import jwt
+from datetime import datetime, timezone
 from app.config import settings
 from app.database import get_db
 from app.models import User, Doctor, Patient
-from app.schemas import UserRegister, UserResponse, UserLogin, Token
+from app.schemas import UserRegister, UserResponse, UserLogin, Token, AcceptTerms
 from app.security import get_password_hash, verify_password, create_access_token
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -46,7 +47,17 @@ class RoleChecker:
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"User role '{current_user.role}' does not have permission to access this resource"
             )
+        require_consent(current_user)
         return current_user
+
+
+CONSENT_REQUIRED_DETAIL = "Consent to the user agreement and personal data processing is required"
+
+
+def require_consent(current_user: User) -> None:
+    """Patients may not use the platform (or send data to the AI) before accepting the current legal documents."""
+    if current_user.needs_consent:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=CONSENT_REQUIRED_DETAIL)
 
 def get_patient_profile(db: Session, current_user: User) -> Patient:
     patient = db.query(Patient).filter(Patient.user_id == current_user.id).first()
@@ -82,7 +93,9 @@ def register(user_in: UserRegister, db: Session = Depends(get_db)):
         email=user_in.email,
         password_hash=hashed_password,
         full_name=user_in.full_name,
-        role=user_in.role
+        role=user_in.role,
+        terms_accepted_at=datetime.now(timezone.utc),
+        terms_version=settings.LEGAL_DOCS_VERSION,
     )
     db.add(user)
     db.commit()
@@ -125,6 +138,20 @@ def login(
         
     access_token = create_access_token(data={"sub": user.email, "role": user.role})
     return {"access_token": access_token, "token_type": "bearer"}
+
+
+@router.post("/accept-terms", response_model=UserResponse)
+def accept_terms(
+    data: AcceptTerms,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Record the user's consent to the current user agreement, privacy policy and data-processing consent."""
+    current_user.terms_accepted_at = datetime.now(timezone.utc)
+    current_user.terms_version = settings.LEGAL_DOCS_VERSION
+    db.commit()
+    db.refresh(current_user)
+    return current_user
 
 
 @router.get("/me", response_model=UserResponse)

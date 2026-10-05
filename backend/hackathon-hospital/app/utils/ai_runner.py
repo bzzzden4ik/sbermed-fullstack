@@ -2,7 +2,8 @@ import os
 from typing import Any
 
 import httpx
-from agents import Agent, Runner
+from agents import Agent, Runner, set_default_openai_client, set_tracing_disabled
+from openai import AsyncOpenAI
 from agents.mcp import MCPServerSse, create_static_tool_filter
 
 from app.config import settings
@@ -147,6 +148,23 @@ def build_admin_instructions(admin_brief: str, today: str) -> str:
     return ADMIN_INSTRUCTIONS.format(admin_brief=admin_brief, today=today)
 
 
+_openai_client: AsyncOpenAI | None = None
+
+
+def _configure_openai() -> None:
+    """One shared client per process: retries rate limits (429), timeouts and 5xx with backoff."""
+    global _openai_client
+    if _openai_client is None:
+        _openai_client = AsyncOpenAI(
+            api_key=settings.OPENAI_API_KEY,
+            max_retries=settings.OPENAI_MAX_RETRIES,
+            timeout=settings.OPENAI_TIMEOUT_SECONDS,
+        )
+        set_default_openai_client(_openai_client, use_for_tracing=False)
+        # Traces would send every conversation to the OpenAI dashboard: extra traffic and patient data.
+        set_tracing_disabled(True)
+
+
 def _mcp_http_client(headers: dict[str, str] | None = None, timeout: Any = None, auth: Any = None) -> httpx.AsyncClient:
     """HTTP client for the agent's MCP connection back to this API.
 
@@ -193,6 +211,7 @@ async def ai_runner(
         raise ValueError("Conversation context must contain at least one message.")
 
     os.environ.setdefault("OPENAI_API_KEY", settings.OPENAI_API_KEY)
+    _configure_openai()
     history = "\n".join(
         f"{('Пользователь' if message['role'] == 'user' else 'Ассистент')}: {message['content']}"
         for message in context[:-1]

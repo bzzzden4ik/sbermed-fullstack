@@ -27,6 +27,9 @@ class Settings(BaseSettings):
     KNOWLEDGE_EMBEDDING_MODEL: str = "text-embedding-3-small"
     KNOWLEDGE_DIR: str = "knowledge"
     OPENAI_API_KEY: str = ""
+    # Retries with exponential backoff on OpenAI rate limits (429), timeouts and 5xx errors
+    OPENAI_MAX_RETRIES: int = 5
+    OPENAI_TIMEOUT_SECONDS: float = 60
     MCP_SERVER_URL: str = "http://127.0.0.1:8000/mcp"
 
     model_config = SettingsConfigDict(

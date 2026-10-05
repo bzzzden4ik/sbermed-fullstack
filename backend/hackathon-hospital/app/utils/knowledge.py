@@ -49,7 +49,8 @@ def embed_texts(texts: list[str]) -> list[list[float]]:
         raise RuntimeError("OpenAI API key is not configured.")
     from openai import OpenAI
 
-    client = OpenAI(api_key=settings.OPENAI_API_KEY)
+    client = OpenAI(api_key=settings.OPENAI_API_KEY, max_retries=settings.OPENAI_MAX_RETRIES,
+                    timeout=settings.OPENAI_TIMEOUT_SECONDS)
     response = client.embeddings.create(model=settings.KNOWLEDGE_EMBEDDING_MODEL, input=texts)
     return [item.embedding for item in response.data]
 

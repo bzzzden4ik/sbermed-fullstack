@@ -1,6 +1,8 @@
-# SIRIUS FastAPI backend. Installed as /etc/systemd/system/sirius-backend.service
+# SIRIUS FastAPI backend (site API). Installed as /etc/systemd/system/sirius-backend.service
+# 4 Gunicorn workers; a crashed worker is restarted, workers are recycled to avoid memory growth.
+# `systemctl reload sirius-backend` replaces workers gracefully (no failed requests during updates).
 [Unit]
-Description=SIRIUS FastAPI backend
+Description=SIRIUS FastAPI backend (API, 4 workers)
 After=network.target postgresql.service
 Requires=postgresql.service
 
@@ -9,8 +11,19 @@ User=sirius
 Group=sirius
 WorkingDirectory=/opt/sirius/app/backend/hackathon-hospital
 EnvironmentFile=/etc/sirius/backend.env
-# One worker: MCP SSE sessions live in process memory. Nginx serves it under /api and strips the prefix.
-ExecStart=/opt/sirius/venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 --proxy-headers --forwarded-allow-ips 127.0.0.1
+ExecStart=/opt/sirius/venv/bin/gunicorn app.main:app \
+    --worker-class uvicorn_worker.UvicornWorker \
+    --workers 4 \
+    --bind 127.0.0.1:8000 \
+    --timeout 120 \
+    --graceful-timeout 60 \
+    --keep-alive 5 \
+    --max-requests 2000 \
+    --max-requests-jitter 200 \
+    --forwarded-allow-ips 127.0.0.1 \
+    --access-logfile - \
+    --error-logfile -
+ExecReload=/bin/kill -s HUP $MAINPID
 Restart=always
 RestartSec=3
 NoNewPrivileges=true

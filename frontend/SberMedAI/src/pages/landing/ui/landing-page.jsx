@@ -90,10 +90,6 @@ export const LandingPage = () => {
                             </g>
                             <path className="hs" transform="translate(560 350) scale(5) translate(-12 -12)" d="M12 0c.8 7.2 4.8 11.2 12 12-7.2.8-11.2 4.8-12 12-.8-7.2-4.8-11.2-12-12C7.2 11.2 11.2 7.2 12 0z" fill="#0F5B68" />
                         </svg>
-                        <img
-                            src="https://img.magnific.com/premium-photo/health-care-medical-focus-heartbeat-checking-function-patient-heart-health-insurance-love-world-heart-day-check-up-heart-attack-cardiology-hospital-service-business_258787-6681.jpg"
-                            alt="" loading="eager" onLoad={markLoaded} onError={dropImage}
-                        />
                     </div>
                     <div className="wrap hw">
                         <div className="eyebrow">SIRIUS · Университетская клиника</div>
@@ -186,7 +182,7 @@ export const LandingPage = () => {
                 <section className="s" id="about">
                     <div className="wrap about">
                         <div className="ph rv" role="img" aria-label="Изображение клиники">
-                            <img src="https://unsplash.com/photos/JJEOuvnY1Tw/download?force=true&w=1200" alt="Врач в клинике" loading="lazy" style={{ objectPosition: 'center 25%' }} onLoad={markLoaded} onError={dropImage} />
+                            <img src="/images/clinic-about.jpg" alt="Врач в клинике" loading="lazy" style={{ objectPosition: 'center 25%' }} onLoad={markLoaded} onError={dropImage} />
                         </div>
                         <div className="rv">
                             <div className="eyebrow">О нас</div>

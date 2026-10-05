@@ -452,7 +452,8 @@ async def convert_audio_to_text(
         )
 
     try:
-        async with AsyncOpenAI(api_key=settings.OPENAI_API_KEY) as client:
+        async with AsyncOpenAI(api_key=settings.OPENAI_API_KEY, max_retries=settings.OPENAI_MAX_RETRIES,
+                               timeout=settings.OPENAI_TIMEOUT_SECONDS) as client:
             transcription = await client.audio.transcriptions.create(
                 model="whisper-1",
                 file=(file.filename or "audio", file.file, file.content_type),

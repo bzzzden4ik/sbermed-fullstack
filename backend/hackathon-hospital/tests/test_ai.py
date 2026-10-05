@@ -14,7 +14,7 @@ def test_audio_transcription_endpoint_returns_openai_transcript(client, monkeypa
             return "Распознанный текст"
 
     class FakeClient:
-        def __init__(self, *, api_key):
+        def __init__(self, *, api_key, **kwargs):
             assert api_key == "test-openai-key"
             self.audio = type("Audio", (), {"transcriptions": FakeTranscriptions()})()
 

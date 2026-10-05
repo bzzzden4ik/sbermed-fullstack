@@ -1,0 +1,21 @@
+# SIRIUS MCP endpoint for the AI agents. Installed as /etc/systemd/system/sirius-mcp.service
+# A single process on purpose: MCP SSE sessions live in process memory, so all of an agent's
+# tool calls must reach the same process. Reachable only from the server (127.0.0.1:8001).
+[Unit]
+Description=SIRIUS MCP tools for AI agents (single worker)
+After=network.target postgresql.service
+Requires=postgresql.service
+
+[Service]
+User=sirius
+Group=sirius
+WorkingDirectory=/opt/sirius/app/backend/hackathon-hospital
+EnvironmentFile=/etc/sirius/backend.env
+ExecStart=/opt/sirius/venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8001 --no-access-log
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

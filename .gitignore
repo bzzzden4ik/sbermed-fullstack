@@ -19,3 +19,6 @@ dist/
 # OS junk
 .DS_Store
 __MACOSX/
+
+# Local credentials report (never commit)
+SIRIUS-accounts*.md

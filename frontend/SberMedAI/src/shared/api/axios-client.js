@@ -42,6 +42,8 @@ api.interceptors.response.use(
 
 /** Human-readable message from a FastAPI error response. */
 export const getErrorMessage = (error, fallback = 'Что-то пошло не так. Попробуйте ещё раз.') => {
+    // Nginx rate limiting (too many requests from one user or network).
+    if (error?.response?.status === 429) return 'Слишком много запросов. Подождите немного и попробуйте снова.'
     const detail = error?.response?.data?.detail
     if (typeof detail === 'string') return detail
     if (Array.isArray(detail) && detail.length) {

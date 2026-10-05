@@ -6,7 +6,7 @@ import {
 import { SiteHeader } from '@/widgets/site-header'
 import { useToast } from '@/shared/ui/toast-context.js'
 import { StatusChip } from '@/shared/ui/common.jsx'
-import { SparkIcon, PlusIcon, SearchIcon, CloseIcon, MicIcon, SendIcon, TrashIcon, MenuIcon } from '@/shared/ui/icons.jsx'
+import { PlusIcon, SearchIcon, CloseIcon, MicIcon, SendIcon, TrashIcon, MenuIcon } from '@/shared/ui/icons.jsx'
 import { getLatestCase } from '@/entities/case'
 import { useSession } from '@/entities/session'
 import { getErrorMessage } from '@/shared/api/axios-client.js'
@@ -14,6 +14,11 @@ import { CASE_DECISION, CASE_STATUS } from '@/shared/lib/labels.js'
 import { dayGroup, formatDate, formatTime } from '@/shared/lib/format.js'
 import { useVoiceRecorder } from '../lib/use-voice-recorder.js'
 import './assistant.css'
+
+const AI_NAME = 'SIRIUS AI'
+
+/** SIRIUS AI logo used for every AI avatar in the chat (public/ai-logo.png). */
+const AiLogo = () => <img className="ai-logo" src="/ai-logo.png" alt="" aria-hidden="true" />
 
 const CHECK_IN = ['Мне стало лучше', 'Лучше не стало', 'Стало хуже', 'Появились новые симптомы']
 
@@ -90,7 +95,7 @@ const RichText = ({ text }) => text.split(/(\*\*[^*]+\*\*)/g).map((part, i) =>
 
 const Bubble = ({ message }) => (
     <div className={`row ${message.role === 'user' ? 'u' : 'b'}`}>
-        {message.role !== 'user' && <div className="av"><SparkIcon /></div>}
+        {message.role !== 'user' && <div className="av" title={AI_NAME}><AiLogo /></div>}
         <div className="msg">
             <RichText text={message.content} />
             {message.created_at && <time>{formatTime(message.created_at)}</time>}
@@ -300,8 +305,8 @@ export function AssistantPage() {
                 <section className="chat">
                     <div className="top">
                         <button className="ibtn burger" aria-label="История диалогов" onClick={() => setSideOpen(true)}><MenuIcon /></button>
-                        <div className="av"><SparkIcon size={16} /></div>
-                        <div><div>Ассистент SIRIUS</div><small>{cfg.subtitle}</small></div>
+                        <div className="av"><AiLogo /></div>
+                        <div><div>{AI_NAME}</div><small>{cfg.subtitle}</small></div>
                         <span className="sp"></span>
                         {current?.case_id && <StatusChip map={CASE_STATUS} value={current.case_status} />}
                     </div>
@@ -310,7 +315,7 @@ export function AssistantPage() {
                         {messages.length === 0 && !currentId ? (
                             isPatient && latestCase ? (
                                 <div className="welcome">
-                                    <div className="orb"><SparkIcon size={34} /></div>
+                                    <div className="orb"><AiLogo /></div>
                                     <h2>Как вы <i>себя чувствуете?</i></h2>
                                     <p>Расскажите, как самочувствие после вашего последнего обращения. Если лучше не стало, я помогу оформить новое обращение к врачу.</p>
                                     <LastCaseCard item={latestCase} />
@@ -321,7 +326,7 @@ export function AssistantPage() {
                                 </div>
                             ) : (
                                 <div className="welcome">
-                                    <div className="orb"><SparkIcon size={34} /></div>
+                                    <div className="orb"><AiLogo /></div>
                                     <h2>{cfg.welcomeTitle}</h2>
                                     <p>{cfg.welcomeText}</p>
                                     <div className="chips">
@@ -334,8 +339,8 @@ export function AssistantPage() {
                         )}
                         {pending && (
                             <div className="row b">
-                                <div className="av"><SparkIcon /></div>
-                                <div className="msg typing" aria-label="Ассистент печатает"><i></i><i></i><i></i></div>
+                                <div className="av" title={AI_NAME}><AiLogo /></div>
+                                <div className="msg typing" aria-label={`${AI_NAME} печатает`}><i></i><i></i><i></i></div>
                             </div>
                         )}
                     </div>

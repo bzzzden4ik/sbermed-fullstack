@@ -6,8 +6,12 @@ APP=/opt/sirius/app
 BACKEND=$APP/backend/hackathon-hospital
 FRONTEND=$APP/frontend/SberMedAI
 
-echo "==> Pulling latest code"
-sudo -u sirius git -C "$APP" pull --ff-only
+# Pull first, then restart this script so the freshly pulled version of it is what runs.
+if [ "${SIRIUS_UPDATE_REEXEC:-}" != "1" ]; then
+    echo "==> Pulling latest code"
+    sudo -u sirius git -C "$APP" pull --ff-only
+    SIRIUS_UPDATE_REEXEC=1 exec "$APP/deploy/update.sh" "$@"
+fi
 
 echo "==> Backend dependencies and migrations"
 sudo -u sirius /opt/sirius/venv/bin/pip install -q -r "$BACKEND/requirements.txt"

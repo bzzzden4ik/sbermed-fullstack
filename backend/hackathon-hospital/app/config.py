@@ -14,10 +14,11 @@ class Settings(BaseSettings):
     SMTP_PASSWORD: str = ""
     SMTP_FROM_EMAIL: str = ""
     SMTP_TIMEOUT_SECONDS: int = 15
-    CLINIC_NAME: str = "Название клиники"
-    CLINIC_CITY: str = "Казань"
-    CLINIC_ADDRESS: str = ""
-    CLINIC_CONTACT_PHONE: str = "+7 (915) 163-07-01"
+    CLINIC_NAME: str = "SIRIUS"
+    CLINIC_CITY: str = "Москва"
+    CLINIC_ADDRESS: str = "119048, ул. Доватора, 15"
+    CLINIC_CONTACT_PHONE: str = "+7 915 163-07-01"
+    FRONTEND_URL: str = "http://127.0.0.1:5173"  # used for links in emails
     OPENAI_API_KEY: str = ""
     MCP_SERVER_URL: str = "http://127.0.0.1:8000/mcp"
 

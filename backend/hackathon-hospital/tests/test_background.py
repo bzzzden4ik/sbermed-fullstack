@@ -74,7 +74,7 @@ def test_notifications_send_email_through_authenticated_smtp(monkeypatch):
     assert [str(make_header(decode_header(message["Subject"]))) for message in sent_messages] == [
         "Подтверждение записи к врачу в клинику «Клиника Тест» 🩺",
         "Напоминание о приёме в клинике «Клиника Тест» 🩺",
-        "New Prescription Issued",
+        "Новое назначение от врача — клиника «Клиника Тест»",
     ]
     confirmation_parts = sent_messages[0].get_payload()
     assert confirmation_parts[0].get_content_type() == "text/plain"
@@ -100,3 +100,26 @@ def test_notifications_send_email_through_authenticated_smtp(monkeypatch):
     assert "Кирилл (General Medicine, квалификация: MBBS)" in reminder_html
     assert "Жалобы на головную боль" in reminder_html
     assert "500 ₽" in reminder_html
+
+def test_all_emails_use_branded_layout_with_cabinet_link(monkeypatch):
+    sent = []
+    monkeypatch.setattr(background, "_send_email", lambda recipient, subject, body, html_body=None: sent.append((subject, body, html_body)))
+    monkeypatch.setattr(settings, "CLINIC_NAME", "SIRIUS")
+    monkeypatch.setattr(settings, "FRONTEND_URL", "https://sirius.example/")
+
+    background.send_appointment_confirmation_email("p@example.com", "Анна", "APT-1", "2026-10-03", "10:00 - 10:30", "Кирилл")
+    background.send_appointment_reminder_email("p@example.com", "Анна", "APT-1", "2026-10-03", "10:00 - 10:30", "Кирилл")
+    background.notify_patient_prescription_created("p@example.com", "Анна", "ОРВИ", "Кирилл")
+    background.send_case_decision_email("p@example.com", "Анна", 7, "NEEDS_EXAMINATION", "Кирилл", doctor_comment="Нужен осмотр <b>срочно</b>")
+
+    assert len(sent) == 4
+    for subject, body, html in sent:
+        assert html and "Здравствуйте, <strong>Анна</strong>!" in html
+        assert "SIRIUS" in html and "Команда клиники «SIRIUS»" in html
+        assert 'href="https://sirius.example/profile' in html
+        assert "Здравствуйте, Анна!" in body  # plain-text alternative is kept
+    decision_html = sent[3][2]
+    assert "Требуется очный осмотр" in decision_html and "Записаться на приём" in decision_html
+    assert "https://sirius.example/profile?case=7#cases" in decision_html
+    # Doctor text is escaped, never injected as HTML.
+    assert "&lt;b&gt;срочно&lt;/b&gt;" in decision_html and "<b>срочно</b>" not in decision_html

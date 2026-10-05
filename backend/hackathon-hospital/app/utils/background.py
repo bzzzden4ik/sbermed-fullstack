@@ -4,6 +4,7 @@ import ssl
 from datetime import date, datetime
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from email.utils import formataddr
 from html import escape
 
 from app.config import settings
@@ -20,7 +21,8 @@ def _send_email(recipient: str, subject: str, body: str, html_body: str | None =
         return
 
     message = MIMEMultipart("alternative")
-    message["From"] = settings.SMTP_FROM_EMAIL or settings.SMTP_USERNAME
+    # Display name so the inbox shows "SIRIUS" instead of a bare address.
+    message["From"] = formataddr((settings.CLINIC_NAME, settings.SMTP_FROM_EMAIL or settings.SMTP_USERNAME))
     message["To"] = recipient
     message["Subject"] = subject
     message.attach(MIMEText(body, "plain", "utf-8"))
@@ -71,6 +73,200 @@ def _format_russian_date(appointment_date: date | datetime | str) -> str:
         )
 
 
+# --- Shared SIRIUS email layout ---------------------------------------------------------------
+# Email clients only support table layouts and inline styles; web fonts and images are often
+# blocked, so the brand is rendered as styled text with Georgia as the serif.
+
+SERIF = "Georgia, 'Times New Roman', serif"
+SANS = "-apple-system, 'Segoe UI', Roboto, Arial, Helvetica, sans-serif"
+INK, INK2, LINE, ACCENT = "#1C2227", "#6A7279", "#E9E5DD", "#0F5B68"
+BADGE_TONES = {
+    "info": ("#E3EEEE", "#0F5B68"),
+    "ok": ("#E3F3EC", "#1B7A5A"),
+    "warn": ("#FBF1D9", "#8A5F00"),
+    "bad": ("#FBE9E7", "#B3322A"),
+}
+
+
+def _clinic_location() -> str:
+    return ", ".join(part for part in (settings.CLINIC_CITY, settings.CLINIC_ADDRESS) if part)
+
+
+def _cabinet_url(path: str = "/profile") -> str:
+    return f"{settings.FRONTEND_URL.rstrip('/')}{path}"
+
+
+def _format_fee(consultation_fee: float | None) -> str:
+    if consultation_fee is None:
+        return "Не указана"
+    return f"{consultation_fee:,.2f}".rstrip("0").rstrip(".").replace(",", " ").replace(".", ",") + " ₽"
+
+
+def _doctor_display(doctor_name: str, specialization: str = "", qualification: str = "") -> str:
+    details = ", ".join(
+        detail for detail in (specialization, f"квалификация: {qualification}" if qualification else "") if detail
+    )
+    return f"{doctor_name} ({details})" if details else doctor_name
+
+
+def _multiline(text: str) -> str:
+    return escape(text).replace("\n", "<br>")
+
+
+def _render_email(
+    *,
+    subject: str,
+    preheader: str,
+    eyebrow: str,
+    title: str,
+    patient_name: str,
+    intro: str,
+    badge: tuple[str, str] | None = None,
+    details: list[tuple[str, str]] | None = None,
+    note: tuple[str, str] | None = None,
+    cta: tuple[str, str] | None = None,
+    closing: str = "Желаем вам крепкого здоровья!",
+) -> str:
+    """Render the branded HTML email. All text arguments are plain text and are escaped here."""
+    clinic = escape(settings.CLINIC_NAME)
+    phone = escape(settings.CLINIC_CONTACT_PHONE)
+    location = escape(_clinic_location())
+
+    badge_html = ""
+    if badge:
+        label, tone = badge
+        bg, fg = BADGE_TONES.get(tone, BADGE_TONES["info"])
+        badge_html = (
+            f'<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:18px 0 0;"><tr>'
+            f'<td style="background:{bg}; color:{fg}; border-radius:99px; padding:7px 16px; font:600 13px/18px {SANS};">'
+            f'&#9679;&nbsp; {escape(label)}</td></tr></table>'
+        )
+
+    details_html = ""
+    if details:
+        rows = []
+        for index, (label, value) in enumerate(details):
+            border = "" if index == len(details) - 1 else f"border-bottom:1px solid {LINE};"
+            rows.append(
+                f'<tr><td class="dl" width="40%" style="padding:13px 18px; {border} color:{INK2}; font:400 13px/20px {SANS}; vertical-align:top;">{escape(label)}</td>'
+                f'<td class="dv" style="padding:13px 18px; {border} color:{INK}; font:500 15px/22px {SANS}; vertical-align:top;">{_multiline(value)}</td></tr>'
+            )
+        details_html = (
+            f'<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" '
+            f'style="margin:26px 0 0; background:#FAF8F4; border:1px solid {LINE}; border-radius:16px; border-collapse:separate;">'
+            f'{"".join(rows)}</table>'
+        )
+
+    note_html = ""
+    if note:
+        note_title, note_text = note
+        note_html = (
+            f'<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin:22px 0 0;"><tr>'
+            f'<td style="background:#E3EEEE; border-left:3px solid {ACCENT}; border-radius:4px 14px 14px 4px; padding:16px 20px;">'
+            f'<div style="color:{ACCENT}; font:700 12px/18px {SANS}; letter-spacing:.08em; text-transform:uppercase;">{escape(note_title)}</div>'
+            f'<div style="margin-top:6px; color:{INK}; font:400 15px/24px {SANS};">{_multiline(note_text)}</div></td></tr></table>'
+        )
+
+    cta_html = ""
+    if cta:
+        label, url = cta
+        cta_html = (
+            f'<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:28px 0 0;"><tr>'
+            f'<td style="background:{INK}; border-radius:99px;">'
+            f'<a href="{escape(url, quote=True)}" target="_blank" style="display:inline-block; padding:14px 28px; color:#ffffff; '
+            f'font:600 15px/20px {SANS}; text-decoration:none; border-radius:99px;">{escape(label)}&nbsp;&nbsp;&rarr;</a>'
+            f'</td></tr></table>'
+        )
+
+    return f"""\
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<meta name="supported-color-schemes" content="light">
+<title>{escape(subject)}</title>
+<style>
+  @media only screen and (max-width: 620px) {{
+    .shell {{ width: 100% !important; }}
+    .px {{ padding-left: 22px !important; padding-right: 22px !important; }}
+    .title {{ font-size: 26px !important; line-height: 32px !important; }}
+    .dl, .dv {{ display: block !important; width: auto !important; }}
+    .dl {{ padding-bottom: 2px !important; border-bottom: 0 !important; }}
+    .dv {{ padding-top: 0 !important; }}
+  }}
+</style>
+</head>
+<body style="margin:0; padding:0; background:#F2F0EA; -webkit-text-size-adjust:100%;">
+<div style="display:none; max-height:0; overflow:hidden; opacity:0; color:transparent;">{escape(preheader)}</div>
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#F2F0EA;">
+<tr><td align="center" style="padding:36px 12px;">
+  <table role="presentation" class="shell" width="600" cellspacing="0" cellpadding="0" border="0" style="width:600px; max-width:600px;">
+    <tr><td class="px" style="padding:0 8px 18px;">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"><tr>
+        <td style="font:400 26px/30px {SERIF}; letter-spacing:6px; color:{INK};">{clinic}<span style="color:{ACCENT}; font-size:20px; letter-spacing:0;">&nbsp;&#10022;</span></td>
+        <td align="right" style="font:500 11px/16px {SANS}; letter-spacing:.14em; text-transform:uppercase; color:{INK2};">Университетская<br>клиника</td>
+      </tr></table>
+    </td></tr>
+    <tr><td style="background:#ffffff; border:1px solid {LINE}; border-radius:24px; overflow:hidden;">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+        <tr><td style="height:5px; line-height:5px; font-size:0; background:{ACCENT}; background-image:linear-gradient(90deg,#0F5B68,#2A8796,#8FD9C4); border-radius:24px 24px 0 0;">&nbsp;</td></tr>
+        <tr><td class="px" style="padding:34px 40px 8px;">
+          <div style="color:{ACCENT}; font:600 12px/16px {SANS}; letter-spacing:.14em; text-transform:uppercase;">{escape(eyebrow)}</div>
+          <div class="title" style="margin-top:10px; color:{INK}; font:400 32px/38px {SERIF};">{escape(title)}</div>
+          {badge_html}
+        </td></tr>
+        <tr><td class="px" style="padding:22px 40px 38px;">
+          <div style="color:{INK}; font:400 17px/26px {SANS};">Здравствуйте, <strong>{escape(patient_name)}</strong>!</div>
+          <div style="margin-top:10px; color:#435057; font:400 15px/24px {SANS};">{_multiline(intro)}</div>
+          {details_html}
+          {note_html}
+          {cta_html}
+          <div style="margin-top:30px; color:#435057; font:400 15px/24px {SANS};">{escape(closing)}<br><span style="color:{INK}; font-weight:600;">Команда клиники «{clinic}»</span></div>
+        </td></tr>
+      </table>
+    </td></tr>
+    <tr><td class="px" style="padding:22px 12px 0; color:{INK2}; font:400 12px/19px {SANS}; text-align:center;">
+      <strong style="color:{INK};">{clinic}</strong> &middot; {location}<br>
+      <a href="tel:{phone}" style="color:{ACCENT}; text-decoration:none;">{phone}</a> &middot; Ежедневно 8:00–21:00<br>
+      <span style="color:#9AA1A6;">Это автоматическое письмо, отвечать на него не нужно. ИИ-ассистент клиники не ставит диагнозов — решения принимает врач.</span>
+    </td></tr>
+  </table>
+</td></tr>
+</table>
+</body>
+</html>
+"""
+
+
+# --- Emails -------------------------------------------------------------------------------------
+
+def _appointment_details(
+    appointment_number: str,
+    appointment_date: date | datetime | str,
+    time_slot: str,
+    doctor_name: str,
+    reason_for_visit: str,
+    doctor_specialization: str,
+    doctor_qualification: str,
+    consultation_fee: float | None,
+) -> list[tuple[str, str]]:
+    return [
+        ("Номер записи", appointment_number),
+        ("Дата приёма", _format_russian_date(appointment_date)),
+        ("Время приёма", time_slot.replace(" - ", " – ")),
+        ("Врач", _doctor_display(doctor_name, doctor_specialization, doctor_qualification)),
+        ("Причина визита", reason_for_visit or "Не указана"),
+        ("Стоимость", _format_fee(consultation_fee)),
+        ("Место", _clinic_location() or "Адрес необходимо уточнить у клиники"),
+    ]
+
+
+def _plain_details(details: list[tuple[str, str]]) -> str:
+    return "\n".join(f"{label}: {value}" for label, value in details)
+
+
 def send_appointment_confirmation_email(
         patient_email: str,
         patient_name: str,
@@ -84,101 +280,37 @@ def send_appointment_confirmation_email(
         consultation_fee: float | None = None,
 ):
     clinic_name = settings.CLINIC_NAME
-    clinic_city = settings.CLINIC_CITY
-    clinic_address = settings.CLINIC_ADDRESS or "Адрес необходимо уточнить у клиники"
-    clinic_phone = settings.CLINIC_CONTACT_PHONE
-    formatted_date = _format_russian_date(appointment_date)
-    formatted_time = time_slot.replace(" - ", " – ")
-    doctor_details = ", ".join(
-        detail for detail in (doctor_specialization, f"квалификация: {doctor_qualification}" if doctor_qualification else "")
-        if detail
+    details = _appointment_details(
+        appointment_number, appointment_date, time_slot, doctor_name, reason_for_visit,
+        doctor_specialization, doctor_qualification, consultation_fee,
     )
-    doctor_display = f"{doctor_name} ({doctor_details})" if doctor_details else doctor_name
-    fee_display = "Не указана"
-    if consultation_fee is not None:
-        fee_display = f"{consultation_fee:,.2f}".rstrip("0").rstrip(".").replace(",", " ").replace(".", ",") + " ₽"
-
-    safe_patient = escape(patient_name)
-    safe_clinic = escape(clinic_name)
-    safe_city = escape(clinic_city)
-    safe_address = escape(clinic_address)
-    safe_phone = escape(clinic_phone)
-    safe_number = escape(appointment_number)
-    safe_date = escape(formatted_date)
-    safe_time = escape(formatted_time)
-    safe_doctor = escape(doctor_display)
-    safe_reason = escape(reason_for_visit or "Не указана")
-    safe_fee = escape(fee_display)
-
+    before_visit = (
+        "Подойдите за 10–15 минут до приёма и возьмите паспорт или другой документ, удостоверяющий личность. "
+        "Если планы изменятся, пожалуйста, предупредите нас заранее."
+    )
     subject = f"Подтверждение записи к врачу в клинику «{clinic_name}» 🩺"
-    
     body = (
         f"Здравствуйте, {patient_name}!\n\n"
-        f"Ваша запись на прием в клинику «{clinic_name}» подтверждена. Ждем вас!\n\n"
-        f"Номер записи: {appointment_number}\nДата приема: {formatted_date}\n"
-        f"Время приема: {formatted_time}\nВрач: {doctor_display}\n"
-        f"Причина визита: {reason_for_visit or 'Не указана'}\n"
-        f"Стоимость консультации: {fee_display}\n\n"
-        f"Место проведения: {clinic_city}, {clinic_address}\n"
-        "Пожалуйста, подойдите за 10–15 минут до приема и возьмите документ, удостоверяющий личность.\n"
-        f"Если планы изменятся, сообщите нам заранее: {clinic_phone}.\n\n"
+        f"Ваша запись на приём в клинику «{clinic_name}» подтверждена. Ждём вас!\n\n"
+        f"{_plain_details(details)}\n\n"
+        f"Перед визитом: {before_visit}\n"
+        f"Контакты клиники: {settings.CLINIC_CONTACT_PHONE}\n"
+        f"Личный кабинет: {_cabinet_url('/profile#appointments')}\n\n"
         f"Желаем крепкого здоровья!\nКоманда клиники «{clinic_name}»"
     )
-    
-    html_body = f"""\
-<!doctype html>
-<html lang="ru">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="color-scheme" content="light">
-    <title>{escape(subject)}</title>
-    <style>
-        @media only screen and (max-width: 600px) {{
-            .email-shell {{ width: 100% !important; }}
-            .email-content {{ padding: 24px 18px !important; }}
-            .detail-label, .detail-value {{ display: block !important; width: auto !important; }}
-            .detail-label {{ padding-bottom: 4px !important; }}
-            .detail-value {{ padding-top: 0 !important; }}
-        }}
-    </style>
-</head>
-<body style="margin:0; padding:0; background:#f2f6f5; color:#243b3a; font-family:Arial,Helvetica,sans-serif;">
-    <div style="display:none; max-height:0; overflow:hidden; opacity:0;">Запись {safe_number} подтверждена.</div>
-    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#f2f6f5;">
-        <tr><td align="center" style="padding:32px 12px;">
-            <table role="presentation" class="email-shell" width="600" cellspacing="0" cellpadding="0" border="0" style="width:600px; max-width:600px; background:#ffffff; border-radius:12px; overflow:hidden;">
-                <tr><td style="padding:30px 34px; background:#145b55; color:#ffffff;">
-                    <div style="font-size:13px; line-height:20px; text-transform:uppercase;">Клиника «{safe_clinic}»</div>
-                    <h1 style="margin:8px 0 0; font-size:25px; line-height:32px; font-weight:700;">Запись подтверждена 🩺</h1>
-                </td></tr>
-                <tr><td class="email-content" style="padding:32px 34px;">
-                    <p style="margin:0 0 12px; font-size:17px; line-height:26px;">Здравствуйте, <strong>{safe_patient}</strong>!</p>
-                    <p style="margin:0 0 24px; color:#536765; font-size:15px; line-height:24px;">Ваша запись на прием успешно подтверждена. Будем ждать вас в клинике.</p>
-                    <h2 style="margin:0 0 12px; color:#145b55; font-size:17px; line-height:24px;">Детали записи</h2>
-                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border:1px solid #dce8e5; border-radius:8px;">
-                        <tr><td class="detail-label" width="38%" style="padding:12px 14px; border-bottom:1px solid #e8efed; color:#657774; font-size:14px;">Номер записи</td><td class="detail-value" style="padding:12px 14px; border-bottom:1px solid #e8efed; font-size:14px; font-weight:700;"><span style="font-family:monospace;">{safe_number}</span></td></tr>
-                        <tr><td class="detail-label" style="padding:12px 14px; border-bottom:1px solid #e8efed; color:#657774; font-size:14px;">Дата приема</td><td class="detail-value" style="padding:12px 14px; border-bottom:1px solid #e8efed; font-size:14px;">{safe_date}</td></tr>
-                        <tr><td class="detail-label" style="padding:12px 14px; border-bottom:1px solid #e8efed; color:#657774; font-size:14px;">Время приема</td><td class="detail-value" style="padding:12px 14px; border-bottom:1px solid #e8efed; font-size:14px;">{safe_time}</td></tr>
-                        <tr><td class="detail-label" style="padding:12px 14px; border-bottom:1px solid #e8efed; color:#657774; font-size:14px;">Врач</td><td class="detail-value" style="padding:12px 14px; border-bottom:1px solid #e8efed; font-size:14px;">{safe_doctor}</td></tr>
-                        <tr><td class="detail-label" style="padding:12px 14px; border-bottom:1px solid #e8efed; color:#657774; font-size:14px;">Причина визита</td><td class="detail-value" style="padding:12px 14px; border-bottom:1px solid #e8efed; font-size:14px;">{safe_reason}</td></tr>
-                        <tr><td class="detail-label" style="padding:12px 14px; color:#657774; font-size:14px;">Стоимость</td><td class="detail-value" style="padding:12px 14px; font-size:14px; font-weight:700;">{safe_fee}</td></tr>
-                    </table>
-                    <div style="margin-top:22px; padding:16px 18px; background:#edf6f3; border-left:3px solid #42a58e; border-radius:4px;">
-                        <p style="margin:0 0 6px; color:#145b55; font-size:15px; font-weight:700;">Перед визитом</p>
-                        <p style="margin:0; color:#435a57; font-size:14px; line-height:22px;">Подойдите за 10–15 минут до приема и возьмите паспорт или другой документ, удостоверяющий личность. Если планы изменятся, пожалуйста, предупредите нас заранее.</p>
-                    </div>
-                    <p style="margin:22px 0 4px; font-size:14px; line-height:22px;"><strong>Место проведения:</strong> {safe_city}, {safe_address}</p>
-                    <p style="margin:0; font-size:14px; line-height:22px;"><strong>Контакты:</strong> <a href="tel:{safe_phone}" style="color:#145b55;">{safe_phone}</a></p>
-                    <p style="margin:24px 0 0; color:#536765; font-size:14px; line-height:22px;">Желаем вам крепкого здоровья и хорошего дня!<br><strong>Команда клиники «{safe_clinic}»</strong></p>
-                </td></tr>
-                <tr><td style="padding:16px 34px; background:#f8faf9; color:#80908d; font-size:12px; line-height:18px;">Это автоматическое подтверждение записи. Пожалуйста, сохраните письмо до визита.</td></tr>
-            </table>
-        </td></tr>
-    </table>
-</body>
-</html>
-"""
+    html_body = _render_email(
+        subject=subject,
+        preheader=f"Запись {appointment_number} подтверждена: {details[1][1]}, {details[2][1]}.",
+        eyebrow="Запись на приём",
+        title="Запись подтверждена 🩺",
+        badge=(f"{details[1][1]} · {details[2][1]}", "info"),
+        patient_name=patient_name,
+        intro="Ваша запись на приём успешно подтверждена. Будем ждать вас в клинике.",
+        details=details,
+        note=("Перед визитом", before_visit),
+        cta=("Открыть личный кабинет", _cabinet_url("/profile#appointments")),
+        closing="Желаем вам крепкого здоровья и хорошего дня!",
+    )
     _send_email(patient_email, subject, body, html_body)
 
 
@@ -195,118 +327,65 @@ def send_appointment_reminder_email(
     consultation_fee: float | None = None,
 ):
     clinic_name = settings.CLINIC_NAME
-    clinic_city = settings.CLINIC_CITY
-    clinic_address = settings.CLINIC_ADDRESS or "Адрес необходимо уточнить у клиники"
-    clinic_phone = settings.CLINIC_CONTACT_PHONE
-    formatted_date = _format_russian_date(appointment_date)
-    formatted_time = time_slot.replace(" - ", " – ")
-    doctor_details = ", ".join(
-        detail for detail in (
-            doctor_specialization,
-            f"квалификация: {doctor_qualification}" if doctor_qualification else "",
-        )
-        if detail
+    details = _appointment_details(
+        appointment_number, appointment_date, time_slot, doctor_name, reason_for_visit,
+        doctor_specialization, doctor_qualification, consultation_fee,
     )
-    doctor_display = f"{doctor_name} ({doctor_details})" if doctor_details else doctor_name
-    fee_display = "Не указана"
-    if consultation_fee is not None:
-        fee_display = f"{consultation_fee:,.2f}".rstrip("0").rstrip(".").replace(",", " ").replace(".", ",") + " ₽"
-
-    safe_subject = escape(f"Напоминание о приёме в клинике «{clinic_name}» 🩺")
-    safe_patient = escape(patient_name)
-    safe_clinic = escape(clinic_name)
-    safe_city = escape(clinic_city)
-    safe_address = escape(clinic_address)
-    safe_phone = escape(clinic_phone)
-    safe_number = escape(appointment_number)
-    safe_date = escape(formatted_date)
-    safe_time = escape(formatted_time)
-    safe_doctor = escape(doctor_display)
-    safe_reason = escape(reason_for_visit or "Не указана")
-    safe_fee = escape(fee_display)
-
+    before_visit = (
+        "Подойдите за 10–15 минут до приёма и возьмите паспорт или другой документ, удостоверяющий личность. "
+        "Если планы изменились, сообщите нам заранее."
+    )
+    subject = f"Напоминание о приёме в клинике «{clinic_name}» 🩺"
     body = (
         f"Здравствуйте, {patient_name}!\n\n"
         f"Напоминаем о вашем предстоящем приёме в клинике «{clinic_name}».\n\n"
-        f"Номер записи: {appointment_number}\nДата приема: {formatted_date}\n"
-        f"Время приема: {formatted_time}\nВрач: {doctor_display}\n"
-        f"Причина визита: {reason_for_visit or 'Не указана'}\n"
-        f"Стоимость консультации: {fee_display}\n\n"
-        f"Место проведения: {clinic_city}, {clinic_address}\n"
-        "Пожалуйста, подойдите за 10–15 минут и возьмите документ, удостоверяющий личность.\n"
-        f"Контакты клиники: {clinic_phone}.\n\n"
+        f"{_plain_details(details)}\n\n"
+        f"Перед визитом: {before_visit}\n"
+        f"Контакты клиники: {settings.CLINIC_CONTACT_PHONE}\n\n"
         f"До встречи!\nКоманда клиники «{clinic_name}»"
     )
-    html_body = f"""\
-<!doctype html>
-<html lang="ru">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="color-scheme" content="light">
-    <title>{safe_subject}</title>
-    <style>
-        @media only screen and (max-width: 600px) {{
-            .email-shell {{ width: 100% !important; }}
-            .email-content {{ padding: 24px 18px !important; }}
-            .detail-label, .detail-value {{ display: block !important; width: auto !important; }}
-            .detail-label {{ padding-bottom: 4px !important; }}
-            .detail-value {{ padding-top: 0 !important; }}
-        }}
-    </style>
-</head>
-<body style="margin:0; padding:0; background:#f2f6f5; color:#243b3a; font-family:Arial,Helvetica,sans-serif;">
-    <div style="display:none; max-height:0; overflow:hidden; opacity:0;">Скоро приём: {safe_date}, {safe_time}.</div>
-    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#f2f6f5;">
-        <tr><td align="center" style="padding:32px 12px;">
-            <table role="presentation" class="email-shell" width="600" cellspacing="0" cellpadding="0" border="0" style="width:600px; max-width:600px; background:#ffffff; border-radius:12px; overflow:hidden;">
-                <tr><td style="padding:30px 34px; background:#145b55; color:#ffffff;">
-                    <div style="font-size:13px; line-height:20px; text-transform:uppercase;">Клиника «{safe_clinic}»</div>
-                    <h1 style="margin:8px 0 0; font-size:25px; line-height:32px; font-weight:700;">Скоро увидимся 🩺</h1>
-                </td></tr>
-                <tr><td class="email-content" style="padding:32px 34px;">
-                    <p style="margin:0 0 12px; font-size:17px; line-height:26px;">Здравствуйте, <strong>{safe_patient}</strong>!</p>
-                    <p style="margin:0 0 24px; color:#536765; font-size:15px; line-height:24px;">Напоминаем о вашем предстоящем приёме. Мы будем ждать вас в клинике.</p>
-                    <h2 style="margin:0 0 12px; color:#145b55; font-size:17px; line-height:24px;">Детали вашего визита</h2>
-                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border:1px solid #dce8e5; border-radius:8px;">
-                        <tr><td class="detail-label" width="38%" style="padding:12px 14px; border-bottom:1px solid #e8efed; color:#657774; font-size:14px;">Номер записи</td><td class="detail-value" style="padding:12px 14px; border-bottom:1px solid #e8efed; font-size:14px; font-weight:700;"><span style="font-family:monospace;">{safe_number}</span></td></tr>
-                        <tr><td class="detail-label" style="padding:12px 14px; border-bottom:1px solid #e8efed; color:#657774; font-size:14px;">Дата приема</td><td class="detail-value" style="padding:12px 14px; border-bottom:1px solid #e8efed; font-size:14px;">{safe_date}</td></tr>
-                        <tr><td class="detail-label" style="padding:12px 14px; border-bottom:1px solid #e8efed; color:#657774; font-size:14px;">Время приема</td><td class="detail-value" style="padding:12px 14px; border-bottom:1px solid #e8efed; font-size:14px;">{safe_time}</td></tr>
-                        <tr><td class="detail-label" style="padding:12px 14px; border-bottom:1px solid #e8efed; color:#657774; font-size:14px;">Врач</td><td class="detail-value" style="padding:12px 14px; border-bottom:1px solid #e8efed; font-size:14px;">{safe_doctor}</td></tr>
-                        <tr><td class="detail-label" style="padding:12px 14px; border-bottom:1px solid #e8efed; color:#657774; font-size:14px;">Причина визита</td><td class="detail-value" style="padding:12px 14px; border-bottom:1px solid #e8efed; font-size:14px;">{safe_reason}</td></tr>
-                        <tr><td class="detail-label" style="padding:12px 14px; color:#657774; font-size:14px;">Стоимость</td><td class="detail-value" style="padding:12px 14px; font-size:14px; font-weight:700;">{safe_fee}</td></tr>
-                    </table>
-                    <div style="margin-top:22px; padding:16px 18px; background:#edf6f3; border-left:3px solid #42a58e; border-radius:4px;">
-                        <p style="margin:0 0 6px; color:#145b55; font-size:15px; font-weight:700;">Перед визитом</p>
-                        <p style="margin:0; color:#435a57; font-size:14px; line-height:22px;">Подойдите за 10–15 минут до приема и возьмите паспорт или другой документ, удостоверяющий личность. Если планы изменились, сообщите нам заранее.</p>
-                    </div>
-                    <p style="margin:22px 0 4px; font-size:14px; line-height:22px;"><strong>Место проведения:</strong> {safe_city}, {safe_address}</p>
-                    <p style="margin:0; font-size:14px; line-height:22px;"><strong>Контакты:</strong> <a href="tel:{safe_phone}" style="color:#145b55;">{safe_phone}</a></p>
-                    <p style="margin:24px 0 0; color:#536765; font-size:14px; line-height:22px;">До встречи!<br><strong>Команда клиники «{safe_clinic}»</strong></p>
-                </td></tr>
-                <tr><td style="padding:16px 34px; background:#f8faf9; color:#80908d; font-size:12px; line-height:18px;">Это автоматическое напоминание о вашей записи.</td></tr>
-            </table>
-        </td></tr>
-    </table>
-</body>
-</html>
-"""
-    _send_email(
-        patient_email,
-        f"Напоминание о приёме в клинике «{clinic_name}» 🩺",
-        body,
-        html_body,
+    html_body = _render_email(
+        subject=subject,
+        preheader=f"Скоро приём: {details[1][1]}, {details[2][1]}.",
+        eyebrow="Напоминание",
+        title="Скоро увидимся 🩺",
+        badge=(f"{details[1][1]} · {details[2][1]}", "warn"),
+        patient_name=patient_name,
+        intro="Напоминаем о вашем предстоящем приёме. Мы будем ждать вас в клинике.",
+        details=details,
+        note=("Перед визитом", before_visit),
+        cta=("Мои записи", _cabinet_url("/profile#appointments")),
+        closing="До встречи!",
     )
+    _send_email(patient_email, subject, body, html_body)
 
 
 def notify_patient_prescription_created(patient_email: str, patient_name: str, diagnosis: str, doctor_name: str):
+    clinic_name = settings.CLINIC_NAME
+    subject = f"Новое назначение от врача — клиника «{clinic_name}»"
+    details = [("Врач", doctor_name), ("Диагноз", diagnosis)]
     body = (
-        f"Dear {patient_name},\n\n"
-        f"Dr. {doctor_name} has issued a new prescription for you.\n"
-        f"Diagnosis: {diagnosis}\n\n"
-        "Log in to your patient portal or contact the clinic to view the full prescription."
+        f"Здравствуйте, {patient_name}!\n\n"
+        f"Врач {doctor_name} оформил для вас новое назначение.\n"
+        f"Диагноз: {diagnosis}\n\n"
+        "Полное назначение с препаратами и дозировкой доступно в личном кабинете или в клинике.\n"
+        f"Контакты клиники: {settings.CLINIC_CONTACT_PHONE}\n\n"
+        f"Команда клиники «{clinic_name}»"
     )
-    _send_email(patient_email, "New Prescription Issued", body)
+    html_body = _render_email(
+        subject=subject,
+        preheader=f"Врач {doctor_name} оформил для вас новое назначение.",
+        eyebrow="Назначение врача",
+        title="Новое назначение",
+        badge=("Назначение оформлено", "ok"),
+        patient_name=patient_name,
+        intro=f"Врач {doctor_name} оформил для вас новое назначение по итогам приёма.",
+        details=details,
+        note=("Что дальше", "Полное назначение с препаратами, дозировкой и рекомендациями доступно в личном кабинете. "
+                            "Если что-то непонятно, свяжитесь с клиникой."),
+        cta=("Открыть личный кабинет", _cabinet_url("/profile")),
+    )
+    _send_email(patient_email, subject, body, html_body)
 
 
 CASE_DECISION_TEXT = {
@@ -323,6 +402,7 @@ CASE_DECISION_TEXT = {
         "Врач направил ваше обращение профильному специалисту. Он изучит его и примет решение.",
     ),
 }
+CASE_DECISION_TONE = {"NEEDS_EXAMINATION": "warn", "NO_EXAMINATION_NEEDED": "ok", "REFER_TO_SPECIALIST": "info"}
 
 
 def send_case_decision_email(
@@ -335,81 +415,34 @@ def send_case_decision_email(
         referred_doctor_name: str | None = None,
 ):
     clinic_name = settings.CLINIC_NAME
-    clinic_phone = settings.CLINIC_CONTACT_PHONE
     title, explanation = CASE_DECISION_TEXT.get(decision, ("Решение врача", "Врач рассмотрел ваше обращение."))
     comment = doctor_comment or "Без комментария"
-
-    safe_clinic = escape(clinic_name)
-    safe_patient = escape(patient_name)
-    safe_title = escape(title)
-    safe_explanation = escape(explanation)
-    safe_doctor = escape(doctor_name)
-    safe_comment = escape(comment).replace("\n", "<br>")
-    safe_phone = escape(clinic_phone)
-    referred_row = ""
+    details = [("Обращение", f"№{case_id}"), ("Врач", doctor_name)]
     if referred_doctor_name:
-        referred_row = (
-            '<tr><td class="detail-label" style="padding:12px 14px; border-top:1px solid #e8efed; color:#657774; font-size:14px;">Специалист</td>'
-            f'<td class="detail-value" style="padding:12px 14px; border-top:1px solid #e8efed; font-size:14px;">{escape(referred_doctor_name)}</td></tr>'
-        )
+        details.append(("Специалист", referred_doctor_name))
+    cta_label = "Записаться на приём" if decision == "NEEDS_EXAMINATION" else "Открыть обращение"
 
     subject = f"Обращение №{case_id}: {title} — клиника «{clinic_name}»"
     body = (
         f"Здравствуйте, {patient_name}!\n\n"
         f"По вашему обращению №{case_id} принято решение: {title}.\n"
         f"{explanation}\n\n"
-        f"Врач: {doctor_name}\n"
-        + (f"Специалист: {referred_doctor_name}\n" if referred_doctor_name else "")
-        + f"Комментарий врача: {comment}\n\n"
-        "Подробности доступны в личном кабинете.\n"
-        f"Контакты клиники: {clinic_phone}\n\n"
+        f"{_plain_details(details)}\n"
+        f"Комментарий врача: {comment}\n\n"
+        f"Подробности в личном кабинете: {_cabinet_url(f'/profile?case={case_id}#cases')}\n"
+        f"Контакты клиники: {settings.CLINIC_CONTACT_PHONE}\n\n"
         f"Команда клиники «{clinic_name}»"
     )
-    html_body = f"""\
-<!doctype html>
-<html lang="ru">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="color-scheme" content="light">
-    <title>{escape(subject)}</title>
-    <style>
-        @media only screen and (max-width: 600px) {{
-            .email-shell {{ width: 100% !important; }}
-            .email-content {{ padding: 24px 18px !important; }}
-            .detail-label, .detail-value {{ display: block !important; width: auto !important; }}
-        }}
-    </style>
-</head>
-<body style="margin:0; padding:0; background:#f2f6f5; color:#243b3a; font-family:Arial,Helvetica,sans-serif;">
-    <div style="display:none; max-height:0; overflow:hidden; opacity:0;">Обращение №{case_id}: {safe_title}.</div>
-    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#f2f6f5;">
-        <tr><td align="center" style="padding:32px 12px;">
-            <table role="presentation" class="email-shell" width="600" cellspacing="0" cellpadding="0" border="0" style="width:600px; max-width:600px; background:#ffffff; border-radius:12px; overflow:hidden;">
-                <tr><td style="padding:30px 34px; background:#0F5B68; color:#ffffff;">
-                    <div style="font-size:13px; line-height:20px; text-transform:uppercase;">Клиника «{safe_clinic}»</div>
-                    <h1 style="margin:8px 0 0; font-size:25px; line-height:32px; font-weight:700;">{safe_title}</h1>
-                </td></tr>
-                <tr><td class="email-content" style="padding:32px 34px;">
-                    <p style="margin:0 0 12px; font-size:17px; line-height:26px;">Здравствуйте, <strong>{safe_patient}</strong>!</p>
-                    <p style="margin:0 0 24px; color:#536765; font-size:15px; line-height:24px;">{safe_explanation}</p>
-                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border:1px solid #dce8e5; border-radius:8px;">
-                        <tr><td class="detail-label" width="38%" style="padding:12px 14px; color:#657774; font-size:14px;">Обращение</td><td class="detail-value" style="padding:12px 14px; font-size:14px; font-weight:700;">№{case_id}</td></tr>
-                        <tr><td class="detail-label" style="padding:12px 14px; border-top:1px solid #e8efed; color:#657774; font-size:14px;">Врач</td><td class="detail-value" style="padding:12px 14px; border-top:1px solid #e8efed; font-size:14px;">{safe_doctor}</td></tr>
-                        {referred_row}
-                    </table>
-                    <div style="margin-top:22px; padding:16px 18px; background:#edf6f3; border-left:3px solid #42a58e; border-radius:4px;">
-                        <p style="margin:0 0 6px; color:#0F5B68; font-size:15px; font-weight:700;">Комментарий врача</p>
-                        <p style="margin:0; color:#435a57; font-size:14px; line-height:22px;">{safe_comment}</p>
-                    </div>
-                    <p style="margin:22px 0 0; font-size:14px; line-height:22px;">Подробности доступны в личном кабинете. Контакты клиники: <a href="tel:{safe_phone}" style="color:#0F5B68;">{safe_phone}</a></p>
-                    <p style="margin:24px 0 0; color:#536765; font-size:14px; line-height:22px;">Желаем вам крепкого здоровья!<br><strong>Команда клиники «{safe_clinic}»</strong></p>
-                </td></tr>
-                <tr><td style="padding:16px 34px; background:#f8faf9; color:#80908d; font-size:12px; line-height:18px;">Решение принято врачом. ИИ-ассистент только собирает информацию и не ставит диагнозов.</td></tr>
-            </table>
-        </td></tr>
-    </table>
-</body>
-</html>
-"""
+    html_body = _render_email(
+        subject=subject,
+        preheader=f"Обращение №{case_id}: {title}.",
+        eyebrow=f"Обращение №{case_id}",
+        title="Врач рассмотрел ваше обращение",
+        badge=(title, CASE_DECISION_TONE.get(decision, "info")),
+        patient_name=patient_name,
+        intro=explanation,
+        details=details,
+        note=("Комментарий врача", comment),
+        cta=(cta_label, _cabinet_url(f"/profile?case={case_id}#cases")),
+    )
     _send_email(patient_email, subject, body, html_body)

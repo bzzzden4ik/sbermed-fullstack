@@ -199,3 +199,25 @@ def test_latest_case_and_follow_up_link(client, admin_headers, make_patient, fak
     assert client.post(f"/cases/{first['id']}/decision", json={"decision": "NO_EXAMINATION_NEEDED"}, headers=gp_headers).status_code == 403
     gp_notes = client.get("/notifications", headers=gp_headers).json()
     assert f"повторное по обращению №{first['id']}" in gp_notes[0]["message"]
+
+
+def test_russian_specializations_route_and_fall_back_to_therapy(client, admin_headers, make_patient, fake_ai):
+    def doctor(name, email, specialization):
+        return client.post("/doctors", json={
+            "full_name": name, "specialization": specialization, "qualification": "MD",
+            "phone_number": "1112223333", "email": email, "consultation_fee": 2000,
+            "available_timings": "Пн–Пт 09:00–17:00",
+        }, headers=admin_headers).json()["id"]
+
+    therapist = doctor("Терапевт", "ther@clinic.com", "Терапия")
+    cardiologist = doctor("Кардиолог", "cardio-ru@clinic.com", "Кардиология")
+    headers, _ = make_patient("ru-spec@clinic.com", "9000000300")
+
+    def submit(spec):
+        conversation_id, _ = start_case(client, headers)
+        return client.post("/cases/submit", json={
+            "conversation_id": conversation_id, "summary": SUMMARY, "specialization": spec, "urgency": "low",
+        }, headers=headers).json()["doctor"]["id"]
+
+    assert submit("Кардиология") == cardiologist
+    assert submit("Дерматология") == therapist  # unknown specialization -> general practice

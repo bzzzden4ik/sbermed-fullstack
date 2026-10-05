@@ -1,6 +1,6 @@
 import datetime
 from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks, Query
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from app.database import get_db
@@ -18,7 +18,8 @@ all_roles = RoleChecker(["admin", "doctor", "patient"])
 
 COLLECTING_STATUSES = ["OPEN", "AI_COLLECTING"]
 DECIDABLE_STATUSES = ["READY_FOR_DOCTOR", "REFERRED", "UNDER_REVIEW"]
-FALLBACK_SPECIALIZATION = "General Medicine"
+# General practice, used when no doctor of the requested specialization exists.
+FALLBACK_SPECIALIZATIONS = ("General Medicine", "Терапия")
 
 
 def _utc_now() -> datetime.datetime:
@@ -58,8 +59,10 @@ def assign_doctor(db: Session, specialization: str) -> Optional[Doctor]:
         .filter(Doctor.user_id.isnot(None))
         .order_by(func.coalesce(open_cases.c.load, 0).asc(), Doctor.id.asc())
     )
-    for spec in (specialization, FALLBACK_SPECIALIZATION):
-        doctor = base.filter(func.lower(Doctor.specialization) == spec.strip().lower()).first()
+    for spec in (specialization, *FALLBACK_SPECIALIZATIONS):
+        spec = spec.strip()
+        # Exact match too: SQLite's lower() only folds ASCII, so Cyrillic names need it.
+        doctor = base.filter(or_(Doctor.specialization == spec, func.lower(Doctor.specialization) == spec.lower())).first()
         if doctor:
             return doctor
     return base.first()

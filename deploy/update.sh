@@ -13,6 +13,9 @@ echo "==> Backend dependencies and migrations"
 sudo -u sirius /opt/sirius/venv/bin/pip install -q -r "$BACKEND/requirements.txt"
 sudo -u sirius bash -c "set -a; source /etc/sirius/backend.env; set +a; cd '$BACKEND' && /opt/sirius/venv/bin/alembic upgrade head"
 
+echo "==> Knowledge base (RAG): embedding new or changed sections"
+sudo -u sirius bash -c "set -a; source /etc/sirius/backend.env; set +a; cd '$BACKEND' && /opt/sirius/venv/bin/python ../../deploy/ingest_knowledge.py"
+
 echo "==> Building frontend"
 sudo -u sirius bash -c "cd '$FRONTEND' && npm ci --no-audit --no-fund && VITE_API_URL=/api npm run build"
 

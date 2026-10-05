@@ -352,3 +352,11 @@ class NotificationResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# --- Knowledge base (RAG) Schemas ---
+class KnowledgeHit(BaseModel):
+    document: str = Field(..., description="Title of the clinic document")
+    section: str = Field(..., description="Section of the document")
+    content: str = Field(..., description="Text of the section; answer only from this text")
+    score: float = Field(..., description="Similarity to the question, 0..1 (higher is more relevant)")

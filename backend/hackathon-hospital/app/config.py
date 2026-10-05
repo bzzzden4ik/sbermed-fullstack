@@ -23,6 +23,9 @@ class Settings(BaseSettings):
     CORS_ORIGINS: str = "http://localhost:5173,http://127.0.0.1:5173"
     # Version of the user agreement / privacy policy / data-processing consent. Changing it asks patients to accept again.
     LEGAL_DOCS_VERSION: str = "2026-10-05"
+    # RAG knowledge base: OpenAI embedding model (1536 dimensions) and folder with the Markdown sources
+    KNOWLEDGE_EMBEDDING_MODEL: str = "text-embedding-3-small"
+    KNOWLEDGE_DIR: str = "knowledge"
     OPENAI_API_KEY: str = ""
     MCP_SERVER_URL: str = "http://127.0.0.1:8000/mcp"
 

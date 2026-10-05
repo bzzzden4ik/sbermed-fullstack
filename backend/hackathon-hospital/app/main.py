@@ -19,7 +19,7 @@ from fastapi.staticfiles import StaticFiles
 import os
 from app.config import settings
 from app.database import engine, Base
-from app.routes import auth, doctors, patients, appointments, prescriptions, records, reports, ai, cases, notifications
+from app.routes import auth, doctors, patients, appointments, prescriptions, records, reports, ai, cases, notifications, knowledge
 from fastapi_mcp import FastApiMCP
 from app.utils.ai_runner import ALL_AGENT_TOOLS
 
@@ -64,6 +64,7 @@ app.include_router(reports.router)
 app.include_router(ai.router)
 app.include_router(cases.router)
 app.include_router(notifications.router)
+app.include_router(knowledge.router)
 
 @app.get("/")
 def read_root():

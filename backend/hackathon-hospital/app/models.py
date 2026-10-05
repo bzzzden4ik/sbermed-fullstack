@@ -1,7 +1,9 @@
 import datetime
 from time import timezone
 from typing import List, Optional
-from sqlalchemy import String, Integer, Float, Date, DateTime, ForeignKey, JSON, Text, Boolean
+from sqlalchemy import String, Integer, Float, Date, DateTime, ForeignKey, JSON, Text, Boolean, UniqueConstraint
+from sqlalchemy.types import TypeDecorator
+from pgvector.sqlalchemy import Vector
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.config import settings
 from app.database import Base
@@ -245,3 +247,35 @@ class Notification(Base):
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), default=_utc_now)
 
     user: Mapped["User"] = relationship(back_populates="notifications")
+
+EMBEDDING_DIM = 1536  # text-embedding-3-small
+
+
+class EmbeddingVector(TypeDecorator):
+    """pgvector `vector(1536)` on PostgreSQL; a JSON list elsewhere (SQLite in development and tests)."""
+    impl = JSON
+    cache_ok = True
+
+    def load_dialect_impl(self, dialect):
+        if dialect.name == "postgresql":
+            return dialect.type_descriptor(Vector(EMBEDDING_DIM))
+        return dialect.type_descriptor(JSON())
+
+    def process_result_value(self, value, dialect):
+        return None if value is None else [float(x) for x in value]
+
+
+class KnowledgeChunk(Base):
+    """One section of a clinic knowledge document with its embedding (RAG)."""
+    __tablename__ = "knowledge_chunks"
+    __table_args__ = (UniqueConstraint("doc_slug", "chunk_key", name="uq_knowledge_chunk"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    doc_slug: Mapped[str] = mapped_column(String(100), index=True)   # file name without .md
+    doc_title: Mapped[str] = mapped_column(String(255))
+    chunk_key: Mapped[str] = mapped_column(String(300))              # section title (+ part number)
+    section: Mapped[str] = mapped_column(String(255))
+    content: Mapped[str] = mapped_column(Text)
+    content_hash: Mapped[str] = mapped_column(String(64))            # re-embed only when the text changes
+    embedding: Mapped[list] = mapped_column(EmbeddingVector())
+    updated_at: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), default=_utc_now, onupdate=_utc_now)

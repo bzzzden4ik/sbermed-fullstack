@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useSession, homePathFor } from '@/entities/session'
 import { getErrorMessage } from '@/shared/api/axios-client.js'
+import { useToast } from '@/shared/ui/toast-context.js'
 
 export function AuthForm() {
     const [mode, setMode] = useState('login')
@@ -14,6 +15,7 @@ export function AuthForm() {
     const navigate = useNavigate()
     const location = useLocation()
     const { login, register } = useSession()
+    const toast = useToast()
     const isLogin = mode === 'login'
 
     const switchMode = (next) => {
@@ -80,6 +82,19 @@ export function AuthForm() {
             </div>
             <button type="submit" className="btn" disabled={pending} style={{ width: '100%', marginTop: 8 }}>
                 {pending ? 'Подождите…' : isLogin ? 'Войти' : 'Зарегистрироваться'}
+            </button>
+            <div className="auth-or"><span>или</span></div>
+            <button
+                type="button"
+                className="btn ghost gosuslugi"
+                onClick={() => {
+                    // Placeholder: ESIA (Госуслуги) sign-in is not connected yet.
+                    switchMode('register')
+                    toast.show('Вход через Госуслуги скоро будет доступен. Пока, пожалуйста, зарегистрируйтесь самостоятельно.')
+                }}
+            >
+                Войти через Госуслуги
+                <span className="soon">скоро</span>
             </button>
         </form>
     )

@@ -1,0 +1,20 @@
+# SIRIUS FastAPI backend. Installed as /etc/systemd/system/sirius-backend.service
+[Unit]
+Description=SIRIUS FastAPI backend
+After=network.target postgresql.service
+Requires=postgresql.service
+
+[Service]
+User=sirius
+Group=sirius
+WorkingDirectory=/opt/sirius/app/backend/hackathon-hospital
+EnvironmentFile=/etc/sirius/backend.env
+# One worker: MCP SSE sessions live in process memory. Served under /api behind Nginx.
+ExecStart=/opt/sirius/venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 --root-path /api --proxy-headers --forwarded-allow-ips 127.0.0.1
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

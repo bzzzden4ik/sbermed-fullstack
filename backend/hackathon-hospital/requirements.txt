@@ -2,6 +2,8 @@
 fastapi==0.142.2
 uvicorn==0.54.0
 python-multipart==0.0.32
+pydantic-settings==2.15.0
+httpx==0.28.1
 
 # Database & Migrations
 SQLAlchemy==2.1.3
@@ -11,6 +13,8 @@ alembic==1.20.0
 # AI Agents & Model Context Protocol (MCP)
 openai-agents==0.23.1
 fastapi-mcp==0.4.0
+mcp==1.30.0  # app/main.py patches mcp internals: keep the version pinned
+openai==3.24.0
 
 # Security, Auth & Utilities
 PyJWT==2.15.1
